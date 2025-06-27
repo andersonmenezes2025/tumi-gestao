@@ -1,0 +1,76 @@
+
+import { useState } from 'react';
+import { Tables } from '@/integrations/supabase/types';
+
+type Product = Tables<'products'>;
+
+interface UseProductFormProps {
+  product?: Product | null;
+  companyId: string | undefined;
+  onSubmit: (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function useProductForm({ product, companyId, onSubmit, onOpenChange }: UseProductFormProps) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: product?.name || '',
+    description: product?.description || '',
+    price: product?.price || 0,
+    cost_price: product?.cost_price || 0,
+    stock_quantity: product?.stock_quantity || 0,
+    min_stock: product?.min_stock || 0,
+    max_stock: product?.max_stock || null,
+    category_id: product?.category_id || '',
+    sku: product?.sku || '',
+    barcode: product?.barcode || '',
+    unit: product?.unit || 'un',
+    active: product?.active ?? true,
+    image_url: product?.image_url || null
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: 0,
+      cost_price: 0,
+      stock_quantity: 0,
+      min_stock: 0,
+      max_stock: null,
+      category_id: '',
+      sku: '',
+      barcode: '',
+      unit: 'un',
+      active: true,
+      image_url: null
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId) return;
+
+    setLoading(true);
+    try {
+      await onSubmit({
+        ...formData,
+        company_id: companyId,
+        category_id: formData.category_id || null
+      });
+      onOpenChange(false);
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    formData,
+    setFormData,
+    loading,
+    handleSubmit
+  };
+}
