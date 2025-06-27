@@ -30,11 +30,13 @@ export function ProductForm({ open, onOpenChange, onSubmit, categories, product 
     cost_price: product?.cost_price || 0,
     stock_quantity: product?.stock_quantity || 0,
     min_stock: product?.min_stock || 0,
+    max_stock: product?.max_stock || null,
     category_id: product?.category_id || '',
     sku: product?.sku || '',
     barcode: product?.barcode || '',
     unit: product?.unit || 'un',
-    active: product?.active ?? true
+    active: product?.active ?? true,
+    image_url: product?.image_url || null
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,11 +58,13 @@ export function ProductForm({ open, onOpenChange, onSubmit, categories, product 
         cost_price: 0,
         stock_quantity: 0,
         min_stock: 0,
+        max_stock: null,
         category_id: '',
         sku: '',
         barcode: '',
         unit: 'un',
-        active: true
+        active: true,
+        image_url: null
       });
     } catch (error) {
       console.error('Erro ao salvar produto:', error);
@@ -161,22 +165,32 @@ export function ProductForm({ open, onOpenChange, onSubmit, categories, product 
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="unit">Unidade</Label>
-              <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="un">Unidade</SelectItem>
-                  <SelectItem value="kg">Quilograma</SelectItem>
-                  <SelectItem value="g">Grama</SelectItem>
-                  <SelectItem value="l">Litro</SelectItem>
-                  <SelectItem value="ml">Mililitro</SelectItem>
-                  <SelectItem value="m">Metro</SelectItem>
-                  <SelectItem value="cm">Centímetro</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="max_stock">Estoque Máximo</Label>
+              <Input
+                id="max_stock"
+                type="number"
+                value={formData.max_stock || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, max_stock: e.target.value ? parseInt(e.target.value) : null }))}
+              />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="unit">Unidade</Label>
+            <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="un">Unidade</SelectItem>
+                <SelectItem value="kg">Quilograma</SelectItem>
+                <SelectItem value="g">Grama</SelectItem>
+                <SelectItem value="l">Litro</SelectItem>
+                <SelectItem value="ml">Mililitro</SelectItem>
+                <SelectItem value="m">Metro</SelectItem>
+                <SelectItem value="cm">Centímetro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -197,6 +211,17 @@ export function ProductForm({ open, onOpenChange, onSubmit, categories, product 
                 onChange={(e) => setFormData(prev => ({ ...prev, barcode: e.target.value }))}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="image_url">URL da Imagem</Label>
+            <Input
+              id="image_url"
+              type="url"
+              value={formData.image_url || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value || null }))}
+              placeholder="https://exemplo.com/imagem.jpg"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
