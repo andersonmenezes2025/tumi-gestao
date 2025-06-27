@@ -5,6 +5,7 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { SalesChart } from '@/components/dashboard/SalesChart';
+import { useDashboard } from '@/hooks/useDashboard';
 import { 
   DollarSign, 
   ShoppingCart, 
@@ -15,6 +16,18 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
+  const { stats, loading } = useDashboard();
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -32,33 +45,33 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             title="Receita Mensal"
-            value="R$ 12.489"
-            change="+12.5% vs mês anterior"
+            value={`R$ ${stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            change="Mês atual"
             changeType="positive"
             icon={DollarSign}
             iconColor="text-green-500"
           />
           <StatsCard
-            title="Vendas Hoje"
-            value="24"
-            change="+8 vs ontem"
+            title="Vendas Total"
+            value={stats.totalSales.toString()}
+            change="Todas as vendas"
             changeType="positive"
             icon={ShoppingCart}
             iconColor="text-blue-500"
           />
           <StatsCard
             title="Clientes Ativos"
-            value="342"
-            change="+5.2% este mês"
+            value={stats.activeCustomers.toString()}
+            change={`${stats.totalCustomers} total`}
             changeType="positive"
             icon={Users}
             iconColor="text-purple-500"
           />
           <StatsCard
-            title="Produtos em Estoque"
-            value="1.247"
-            change="12 com estoque baixo"
-            changeType="negative"
+            title="Produtos Cadastrados"
+            value={stats.totalProducts.toString()}
+            change={`${stats.lowStockProducts} com estoque baixo`}
+            changeType={stats.lowStockProducts > 0 ? "negative" : "positive"}
             icon={Package}
             iconColor="text-orange-500"
           />
@@ -73,17 +86,20 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <StatsCard
                 title="Ticket Médio"
-                value="R$ 89,50"
-                change="+3.2% vs mês anterior"
+                value={stats.totalSales > 0 
+                  ? `R$ ${(stats.monthlyRevenue / stats.totalSales).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                  : "R$ 0,00"
+                }
+                change="Por venda"
                 changeType="positive"
                 icon={TrendingUp}
                 iconColor="text-emerald-500"
               />
               <StatsCard
                 title="Produtos em Alerta"
-                value="12"
+                value={stats.lowStockProducts.toString()}
                 change="Estoque baixo"
-                changeType="negative"
+                changeType={stats.lowStockProducts > 0 ? "negative" : "positive"}
                 icon={AlertTriangle}
                 iconColor="text-red-500"
               />

@@ -13,7 +13,8 @@ import {
   Package,
   AlertTriangle,
   TrendingUp,
-  Edit
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { 
   Table,
@@ -23,75 +24,33 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useProducts } from '@/hooks/useProducts';
+import { ProductForm } from '@/components/products/ProductForm';
+import { Tables } from '@/integrations/supabase/types';
 
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  cost: number;
-  stock: number;
-  minStock: number;
-  status: 'active' | 'inactive' | 'low_stock';
-  lastUpdated: string;
-}
-
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Maçã Gala',
-    category: 'Frutas',
-    price: 6.50,
-    cost: 3.20,
-    stock: 5,
-    minStock: 10,
-    status: 'low_stock',
-    lastUpdated: '2024-01-15'
-  },
-  {
-    id: '2',
-    name: 'Banana Prata',
-    category: 'Frutas',
-    price: 4.80,
-    cost: 2.40,
-    stock: 45,
-    minStock: 20,
-    status: 'active',
-    lastUpdated: '2024-01-14'
-  },
-  {
-    id: '3',
-    name: 'Alface Americana',
-    category: 'Verduras',
-    price: 3.50,
-    cost: 1.75,
-    stock: 28,
-    minStock: 15,
-    status: 'active',
-    lastUpdated: '2024-01-13'
-  },
-  {
-    id: '4',
-    name: 'Tomate Italiano',
-    category: 'Verduras',
-    price: 8.90,
-    cost: 4.50,
-    stock: 0,
-    minStock: 25,
-    status: 'inactive',
-    lastUpdated: '2024-01-10'
-  }
-];
+type Product = Tables<'products'>;
 
 const Produtos: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [products] = useState<Product[]>(mockProducts);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  
+  const { products, categories, loading, createProduct, updateProduct, deleteProduct } = useProducts();
 
-  const getStatusBadge = (status: Product['status'], stock: number, minStock: number) => {
-    if (stock === 0) {
+  const getStatusBadge = (product: Product) => {
+    if (!product.active) {
+      return <Badge variant="secondary">Inativo</Badge>;
+    }
+    if ((product.stock_quantity || 0) === 0) {
       return <Badge variant="destructive">Sem Estoque</Badge>;
     }
-    if (stock <= minStock) {
+    if ((product.stock_quantity || 0) <= (product.min_stock || 0)) {
       return <Badge className="bg-yellow-500 hover:bg-yellow-600">Estoque Baixo</Badge>;
     }
     return <Badge className="bg-green-500 hover:bg-green-600">Ativo</Badge>;
@@ -99,12 +58,55 @@ const Produtos: React.FC = () => {
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalProducts = products.length;
-  const lowStockProducts = products.filter(p => p.stock <= p.minStock).length;
-  const outOfStockProducts = products.filter(p => p.stock === 0).length;
+  const lowStockProducts = products.filter(p => (p.stock_quantity || 0) <= (p.min_stock || 0)).length;
+  const outOfStockProducts = products.filter(p => (p.stock_quantity || 0) === 0).length;
+  const averageMargin = products.length > 0 
+    ? products.reduce((acc, p) => {
+        const margin = p.cost_price && p.cost_price > 0 
+          ? ((p.price - p.cost_price) / p.price) * 100 
+          : 0;
+        return acc + margin;
+      }, 0) / products.length
+    : 0;
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setShowProductForm(true);
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    if (window.confirm(`Tem certeza que deseja excluir o produto "${product.name}"?`)) {
+      await deleteProduct(product.id);
+    }
+  };
+
+  const handleSubmitProduct = async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
+    if (editingProduct) {
+      await updateProduct(editingProduct.id, productData);
+    } else {
+      await createProduct(productData);
+    }
+    setEditingProduct(null);
+  };
+
+  const handleCloseForm = () => {
+    setShowProductForm(false);
+    setEditingProduct(null);
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -117,7 +119,10 @@ const Produtos: React.FC = () => {
               Gerencie seu estoque e catálogo de produtos
             </p>
           </div>
-          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+          <Button 
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            onClick={() => setShowProductForm(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Novo Produto
           </Button>
@@ -175,7 +180,7 @@ const Produtos: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Margem Média</p>
-                  <p className="text-2xl font-bold">78%</p>
+                  <p className="text-2xl font-bold">{averageMargin.toFixed(1)}%</p>
                 </div>
               </div>
             </CardContent>
@@ -213,7 +218,6 @@ const Produtos: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Produto</TableHead>
-                  <TableHead>Categoria</TableHead>
                   <TableHead>Preço</TableHead>
                   <TableHead>Custo</TableHead>
                   <TableHead>Estoque</TableHead>
@@ -225,33 +229,72 @@ const Produtos: React.FC = () => {
               <TableBody>
                 {filteredProducts.map((product) => (
                   <TableRow key={product.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>
+                        <div>{product.name}</div>
+                        {product.description && (
+                          <div className="text-sm text-muted-foreground">{product.description}</div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>R$ {product.price.toFixed(2)}</TableCell>
-                    <TableCell>R$ {product.cost.toFixed(2)}</TableCell>
+                    <TableCell>R$ {(product.cost_price || 0).toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span>{product.stock}</span>
-                        {product.stock <= product.minStock && (
+                        <span>{product.stock_quantity || 0} {product.unit}</span>
+                        {(product.stock_quantity || 0) <= (product.min_stock || 0) && (
                           <AlertTriangle className="w-4 h-4 text-yellow-500" />
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(product.status, product.stock, product.minStock)}
+                      {getStatusBadge(product)}
                     </TableCell>
-                    <TableCell>{product.lastUpdated}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
+                      {product.updated_at ? new Date(product.updated_at).toLocaleDateString('pt-BR') : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteProduct(product)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado.'}
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        <ProductForm
+          open={showProductForm}
+          onOpenChange={handleCloseForm}
+          onSubmit={handleSubmitProduct}
+          categories={categories}
+          product={editingProduct}
+        />
       </div>
     </AppLayout>
   );
