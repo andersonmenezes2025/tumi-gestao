@@ -3,13 +3,15 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
+interface ProductStockData {
+  stock_quantity: number;
+  min_stock: number;
+  max_stock: number | null;
+}
+
 interface ProductStockFieldsProps {
-  formData: {
-    stock_quantity: number;
-    min_stock: number;
-    max_stock: number | null;
-  };
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: ProductStockData;
+  setFormData: React.Dispatch<React.SetStateAction<ProductStockData>>;
 }
 
 export function ProductStockFields({ formData, setFormData }: ProductStockFieldsProps) {

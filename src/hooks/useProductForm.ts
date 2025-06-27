@@ -4,6 +4,22 @@ import { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
 
+interface ProductFormData {
+  name: string;
+  description: string;
+  price: number;
+  cost_price: number;
+  stock_quantity: number;
+  min_stock: number;
+  max_stock: number | null;
+  category_id: string;
+  sku: string;
+  barcode: string;
+  unit: string;
+  active: boolean;
+  image_url: string | null;
+}
+
 interface UseProductFormProps {
   product?: Product | null;
   companyId: string | undefined;
@@ -13,7 +29,7 @@ interface UseProductFormProps {
 
 export function useProductForm({ product, companyId, onSubmit, onOpenChange }: UseProductFormProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price || 0,
@@ -29,7 +45,7 @@ export function useProductForm({ product, companyId, onSubmit, onOpenChange }: U
     image_url: product?.image_url || null
   });
 
-  const resetForm = () => {
+  const resetForm = (): void => {
     setFormData({
       name: '',
       description: '',
@@ -47,7 +63,7 @@ export function useProductForm({ product, companyId, onSubmit, onOpenChange }: U
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!companyId) return;
 

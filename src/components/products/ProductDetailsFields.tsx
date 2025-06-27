@@ -3,13 +3,15 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
+interface ProductDetailsData {
+  sku: string;
+  barcode: string;
+  image_url: string | null;
+}
+
 interface ProductDetailsFieldsProps {
-  formData: {
-    sku: string;
-    barcode: string;
-    image_url: string | null;
-  };
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: ProductDetailsData;
+  setFormData: React.Dispatch<React.SetStateAction<ProductDetailsData>>;
 }
 
 export function ProductDetailsFields({ formData, setFormData }: ProductDetailsFieldsProps) {

@@ -8,16 +8,18 @@ import { Tables } from '@/integrations/supabase/types';
 
 type ProductCategory = Tables<'product_categories'>;
 
+interface ProductFormData {
+  name: string;
+  description: string;
+  price: number;
+  cost_price: number;
+  category_id: string;
+  unit: string;
+}
+
 interface ProductFormFieldsProps {
-  formData: {
-    name: string;
-    description: string;
-    price: number;
-    cost_price: number;
-    category_id: string;
-    unit: string;
-  };
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: ProductFormData;
+  setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>;
   categories: ProductCategory[];
 }
 
