@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   LayoutDashboard, 
   Package, 
@@ -10,9 +11,11 @@ import {
   BarChart3,
   Settings,
   Bot,
-  Calendar
+  Calendar,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
@@ -28,6 +31,15 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
+  const { user, profile, company, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col">
@@ -36,6 +48,11 @@ export const Sidebar: React.FC = () => {
           GestãoPro
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Gestão Comercial</p>
+        {company && (
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            {company.name}
+          </p>
+        )}
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
@@ -59,16 +76,30 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
       
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-3">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50">
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium">
-            JP
+            {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">João Paulo</p>
-            <p className="text-xs text-muted-foreground truncate">Administrador</p>
+            <p className="text-sm font-medium truncate">
+              {profile?.full_name || user?.email || 'Usuário'}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {profile?.role === 'admin' ? 'Administrador' : 'Usuário'}
+            </p>
           </div>
         </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleSignOut}
+          className="w-full"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Sair
+        </Button>
       </div>
     </aside>
   );

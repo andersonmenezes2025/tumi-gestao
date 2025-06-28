@@ -7,22 +7,36 @@ import { QuickActions } from '@/components/dashboard/QuickActions';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useCompany } from '@/hooks/useCompany';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import { 
   DollarSign, 
   ShoppingCart, 
   Users, 
   Package,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw,
+  Building
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { stats, loading } = useDashboard();
-  const { hasCompany } = useCompany();
+  const { stats, loading: dashboardLoading } = useDashboard();
+  const { hasCompany, error: companyError, loading: companyLoading } = useCompany();
+  const { refreshProfile, error: authError } = useAuth();
 
-  console.log('Dashboard render - loading:', loading, 'hasCompany:', hasCompany);
+  console.log('Dashboard render - companyLoading:', companyLoading, 'hasCompany:', hasCompany, 'authError:', authError, 'companyError:', companyError);
 
-  if (loading) {
+  const handleRefresh = async () => {
+    try {
+      await refreshProfile();
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
+  };
+
+  // Loading state
+  if (companyLoading || dashboardLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
@@ -35,18 +49,46 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Error state
+  if (authError || companyError) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center space-y-4 max-w-md">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
+            <div>
+              <h2 className="text-xl font-semibold text-red-600">Erro ao carregar dados</h2>
+              <p className="text-muted-foreground mt-2">
+                {authError || companyError || 'Erro desconhecido ao carregar o sistema'}
+              </p>
+            </div>
+            <Button onClick={handleRefresh} className="mt-4">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tentar Novamente
+            </Button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // No company state
   if (!hasCompany) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center space-y-4">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto" />
+          <div className="text-center space-y-4 max-w-md">
+            <Building className="h-12 w-12 text-muted-foreground mx-auto" />
             <div>
-              <h2 className="text-xl font-semibold">Nenhuma empresa encontrada</h2>
+              <h2 className="text-xl font-semibold">Configurando sua empresa</h2>
               <p className="text-muted-foreground">
-                Parece que você ainda não está associado a uma empresa.
+                Estamos criando os dados da sua empresa. Isso pode levar alguns segundos...
               </p>
             </div>
+            <Button onClick={handleRefresh} variant="outline" className="mt-4">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
           </div>
         </div>
       </AppLayout>
@@ -64,6 +106,10 @@ const Dashboard: React.FC = () => {
               Bem-vindo de volta! Aqui está um resumo do seu negócio.
             </p>
           </div>
+          <Button onClick={handleRefresh} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
         </div>
 
         {/* Stats Cards */}

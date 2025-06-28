@@ -23,12 +23,20 @@ export function useDashboard() {
     monthlyRevenue: 0
   });
   const [loading, setLoading] = useState(true);
-  const { companyId } = useCompany();
+  const { companyId, hasCompany } = useCompany();
   const { toast } = useToast();
 
   const fetchDashboardStats = async () => {
-    if (!companyId) {
-      console.log('No companyId available, skipping dashboard stats fetch');
+    if (!companyId || !hasCompany) {
+      console.log('No companyId available or no company, setting default stats');
+      setStats({
+        totalProducts: 0,
+        totalCustomers: 0,
+        lowStockProducts: 0,
+        activeCustomers: 0,
+        totalSales: 0,
+        monthlyRevenue: 0
+      });
       setLoading(false);
       return;
     }
@@ -36,7 +44,7 @@ export function useDashboard() {
     console.log('Fetching dashboard stats for company:', companyId);
     
     try {
-      // Fetch products stats with error handling
+      // Fetch products stats
       const { data: products, error: productsError } = await supabase
         .from('products')
         .select('stock_quantity, min_stock')
@@ -44,10 +52,9 @@ export function useDashboard() {
 
       if (productsError) {
         console.error('Products error:', productsError);
-        throw productsError;
       }
 
-      // Fetch customers stats with error handling
+      // Fetch customers stats
       const { data: customers, error: customersError } = await supabase
         .from('customers')
         .select('active')
@@ -55,10 +62,9 @@ export function useDashboard() {
 
       if (customersError) {
         console.error('Customers error:', customersError);
-        throw customersError;
       }
 
-      // Fetch sales stats with error handling
+      // Fetch sales stats
       const { data: sales, error: salesError } = await supabase
         .from('sales')
         .select('total_amount, created_at')
@@ -66,16 +72,15 @@ export function useDashboard() {
 
       if (salesError) {
         console.error('Sales error:', salesError);
-        throw salesError;
       }
 
       console.log('Dashboard data fetched:', { 
-        products: products?.length, 
-        customers: customers?.length, 
-        sales: sales?.length 
+        products: products?.length || 0, 
+        customers: customers?.length || 0, 
+        sales: sales?.length || 0
       });
 
-      // Calculate stats
+      // Calculate stats with fallbacks
       const totalProducts = products?.length || 0;
       const totalCustomers = customers?.length || 0;
       const lowStockProducts = products?.filter(p => 
@@ -106,33 +111,34 @@ export function useDashboard() {
 
     } catch (error: any) {
       console.error('Error fetching dashboard stats:', error);
-      toast({
-        title: "Erro ao carregar estatísticas",
-        description: error.message || "Erro desconhecido",
-        variant: "destructive",
+      // Don't show toast error for dashboard stats, just log it
+      setStats({
+        totalProducts: 0,
+        totalCustomers: 0,
+        lowStockProducts: 0,
+        activeCustomers: 0,
+        totalSales: 0,
+        monthlyRevenue: 0
       });
     }
   };
 
   useEffect(() => {
-    console.log('Dashboard hook effect - companyId:', companyId);
+    console.log('Dashboard hook effect - companyId:', companyId, 'hasCompany:', hasCompany);
     
-    if (companyId) {
+    if (hasCompany && companyId) {
       fetchDashboardStats().finally(() => {
         setLoading(false);
       });
     } else {
-      // Still loading if no companyId yet
+      // Se não tem empresa, define loading como false após um tempo
       const timer = setTimeout(() => {
-        if (!companyId) {
-          console.log('Dashboard timeout - no company found');
-          setLoading(false);
-        }
-      }, 5000); // 5 second timeout
+        setLoading(false);
+      }, 2000);
       
       return () => clearTimeout(timer);
     }
-  }, [companyId]);
+  }, [companyId, hasCompany]);
 
   return {
     stats,
