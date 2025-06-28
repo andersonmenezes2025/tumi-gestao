@@ -6,6 +6,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useCompany } from '@/hooks/useCompany';
 import { 
   DollarSign, 
   ShoppingCart, 
@@ -17,12 +18,36 @@ import {
 
 const Dashboard: React.FC = () => {
   const { stats, loading } = useDashboard();
+  const { hasCompany } = useCompany();
+
+  console.log('Dashboard render - loading:', loading, 'hasCompany:', hasCompany);
 
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-muted-foreground">Carregando dashboard...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!hasCompany) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="text-center space-y-4">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div>
+              <h2 className="text-xl font-semibold">Nenhuma empresa encontrada</h2>
+              <p className="text-muted-foreground">
+                Parece que você ainda não está associado a uma empresa.
+              </p>
+            </div>
+          </div>
         </div>
       </AppLayout>
     );

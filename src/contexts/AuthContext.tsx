@@ -25,24 +25,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      console.log('Fetching profile for user:', userId);
+      
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (profileData) {
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      console.log('Profile data:', profileData);
       setProfile(profileData);
       
-      if (profileData.company_id) {
-        const { data: companyData } = await supabase
+      if (profileData?.company_id) {
+        console.log('Fetching company for ID:', profileData.company_id);
+        
+        const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('*')
           .eq('id', profileData.company_id)
-          .single();
+          .maybeSingle();
         
-        setCompany(companyData);
+        if (companyError) {
+          console.error('Error fetching company:', companyError);
+        } else {
+          console.log('Company data:', companyData);
+          setCompany(companyData);
+        }
+      } else {
+        console.log('No company_id in profile, clearing company state');
+        setCompany(null);
       }
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      setProfile(null);
+      setCompany(null);
     }
   };
 
@@ -53,30 +75,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
-
+    console.log('AuthProvider initializing...');
+    
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
       setUser(session?.user ?? null);
+      
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        // Defer profile fetching to avoid blocking auth state changes
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+        }, 0);
       } else {
         setProfile(null);
         setCompany(null);
       }
+      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Initial session:', session?.user?.id);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id).finally(() => {
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      console.log('AuthProvider cleanup');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
+    console.log('Signing out...');
     await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+    setCompany(null);
   };
 
   return (
