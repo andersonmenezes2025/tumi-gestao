@@ -18,6 +18,7 @@ interface ProductFormData {
   unit: string;
   active: boolean;
   image_url: string | null;
+  profit_margin_percentage: number;
 }
 
 interface UseProductFormProps {
@@ -42,7 +43,8 @@ export function useProductForm({ product, companyId, onSubmit, onOpenChange }: U
     barcode: product?.barcode || '',
     unit: product?.unit || 'un',
     active: product?.active ?? true,
-    image_url: product?.image_url || null
+    image_url: product?.image_url || null,
+    profit_margin_percentage: product?.profit_margin_percentage || 30
   });
 
   const resetForm = (): void => {
@@ -59,7 +61,8 @@ export function useProductForm({ product, companyId, onSubmit, onOpenChange }: U
       barcode: '',
       unit: 'un',
       active: true,
-      image_url: null
+      image_url: null,
+      profit_margin_percentage: 30
     });
   };
 
