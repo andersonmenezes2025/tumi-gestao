@@ -142,12 +142,20 @@ export type Database = {
           cnpj: string | null
           created_at: string | null
           email: string | null
+          facebook_url: string | null
+          google_calendar_integration: boolean | null
+          google_calendar_token: string | null
           id: string
+          instagram_url: string | null
           logo_url: string | null
           name: string
           phone: string | null
+          primary_color: string | null
+          secondary_color: string | null
           state: string | null
           updated_at: string | null
+          website: string | null
+          whatsapp_number: string | null
           zip_code: string | null
         }
         Insert: {
@@ -156,12 +164,20 @@ export type Database = {
           cnpj?: string | null
           created_at?: string | null
           email?: string | null
+          facebook_url?: string | null
+          google_calendar_integration?: boolean | null
+          google_calendar_token?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           name: string
           phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           state?: string | null
           updated_at?: string | null
+          website?: string | null
+          whatsapp_number?: string | null
           zip_code?: string | null
         }
         Update: {
@@ -170,15 +186,73 @@ export type Database = {
           cnpj?: string | null
           created_at?: string | null
           email?: string | null
+          facebook_url?: string | null
+          google_calendar_integration?: boolean | null
+          google_calendar_token?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           name?: string
           phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
           state?: string | null
           updated_at?: string | null
+          website?: string | null
+          whatsapp_number?: string | null
           zip_code?: string | null
         }
         Relationships: []
+      }
+      crm_leads: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          email: string | null
+          id: string
+          last_contact_at: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          last_contact_at?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          last_contact_at?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
@@ -245,6 +319,100 @@ export type Database = {
           },
         ]
       }
+      integrations: {
+        Row: {
+          active: boolean | null
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+          settings: Json | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          settings?: Json | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          settings?: Json | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaigns: {
+        Row: {
+          company_id: string
+          content: string
+          created_at: string | null
+          id: string
+          name: string
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          target_audience: Json | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          name: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          target_audience?: Json | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          target_audience?: Json | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaigns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           company_id: string
@@ -295,6 +463,7 @@ export type Database = {
           min_stock: number | null
           name: string
           price: number
+          profit_margin_percentage: number | null
           sku: string | null
           stock_quantity: number | null
           unit: string | null
@@ -314,6 +483,7 @@ export type Database = {
           min_stock?: number | null
           name: string
           price?: number
+          profit_margin_percentage?: number | null
           sku?: string | null
           stock_quantity?: number | null
           unit?: string | null
@@ -333,6 +503,7 @@ export type Database = {
           min_stock?: number | null
           name?: string
           price?: number
+          profit_margin_percentage?: number | null
           sku?: string | null
           stock_quantity?: number | null
           unit?: string | null
