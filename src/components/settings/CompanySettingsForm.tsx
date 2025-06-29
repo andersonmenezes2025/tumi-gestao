@@ -5,15 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useCompany } from '@/hooks/useCompany';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
-import { Loader2, Save } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
-const companyFormSchema = z.object({
-  name: z.string().min(1, 'Nome da empresa é obrigatório'),
+const companySchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório'),
   cnpj: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional(),
@@ -24,14 +24,19 @@ const companyFormSchema = z.object({
   website: z.string().url('URL inválida').optional().or(z.literal('')),
 });
 
-type CompanyFormData = z.infer<typeof companyFormSchema>;
+type CompanyFormData = z.infer<typeof companySchema>;
 
 export function CompanySettingsForm() {
-  const { company, loading } = useCompany();
-  const { updateCompany } = useCompanySettings();
+  const { company } = useCompany();
+  const { updateCompany, isUpdating } = useCompanySettings();
+  const { toast } = useToast();
 
-  const form = useForm<CompanyFormData>({
-    resolver: zodResolver(companyFormSchema),
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CompanyFormData>({
+    resolver: zodResolver(companySchema),
     defaultValues: {
       name: company?.name || '',
       cnpj: company?.cnpj || '',
@@ -45,196 +50,123 @@ export function CompanySettingsForm() {
     },
   });
 
-  React.useEffect(() => {
-    if (company) {
-      form.reset({
-        name: company.name || '',
-        cnpj: company.cnpj || '',
-        email: company.email || '',
-        phone: company.phone || '',
-        address: company.address || '',
-        city: company.city || '',
-        state: company.state || '',
-        zip_code: company.zip_code || '',
-        website: company.website || '',
-      });
-    }
-  }, [company, form]);
-
   const onSubmit = async (data: CompanyFormData) => {
     try {
       await updateCompany(data);
       toast({
-        title: 'Sucesso!',
-        description: 'Configurações da empresa atualizadas com sucesso.',
+        title: 'Sucesso',
+        description: 'Informações da empresa atualizadas com sucesso!',
       });
     } catch (error) {
-      console.error('Error updating company:', error);
+      console.error('Erro ao atualizar empresa:', error);
       toast({
-        variant: 'destructive',
         title: 'Erro',
-        description: 'Erro ao atualizar configurações da empresa.',
+        description: 'Erro ao atualizar informações da empresa.',
+        variant: 'destructive',
       });
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome da Empresa *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Nome da sua empresa" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Nome da Empresa *</Label>
+          <Input
+            id="name"
+            {...register('name')}
+            placeholder="Nome da sua empresa"
           />
-
-          <FormField
-            control={form.control}
-            name="cnpj"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CNPJ</FormLabel>
-                <FormControl>
-                  <Input placeholder="00.000.000/0000-00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>E-mail</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="contato@empresa.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Telefone</FormLabel>
-                <FormControl>
-                  <Input placeholder="(11) 99999-9999" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="website"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Website</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://www.empresa.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Endereço</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Endereço completo da empresa" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+          {errors.name && (
+            <p className="text-sm text-red-500">{errors.name.message}</p>
           )}
-        />
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cidade</FormLabel>
-                <FormControl>
-                  <Input placeholder="Cidade" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="state"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Estado</FormLabel>
-                <FormControl>
-                  <Input placeholder="Estado" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="zip_code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CEP</FormLabel>
-                <FormControl>
-                  <Input placeholder="00000-000" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        <div className="space-y-2">
+          <Label htmlFor="cnpj">CNPJ</Label>
+          <Input
+            id="cnpj"
+            {...register('cnpj')}
+            placeholder="00.000.000/0000-00"
           />
         </div>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Salvar Alterações
-              </>
-            )}
-          </Button>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            {...register('email')}
+            placeholder="contato@empresa.com"
+          />
+          {errors.email && (
+            <p className="text-sm text-red-500">{errors.email.message}</p>
+          )}
         </div>
-      </form>
-    </Form>
+
+        <div className="space-y-2">
+          <Label htmlFor="phone">Telefone</Label>
+          <Input
+            id="phone"
+            {...register('phone')}
+            placeholder="(11) 99999-9999"
+          />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="address">Endereço</Label>
+          <Textarea
+            id="address"
+            {...register('address')}
+            placeholder="Rua, número, complemento"
+            rows={2}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="city">Cidade</Label>
+          <Input
+            id="city"
+            {...register('city')}
+            placeholder="Cidade"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="state">Estado</Label>
+          <Input
+            id="state"
+            {...register('state')}
+            placeholder="Estado"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="zip_code">CEP</Label>
+          <Input
+            id="zip_code"
+            {...register('zip_code')}
+            placeholder="00000-000"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="website">Website</Label>
+          <Input
+            id="website"
+            {...register('website')}
+            placeholder="https://www.empresa.com"
+          />
+          {errors.website && (
+            <p className="text-sm text-red-500">{errors.website.message}</p>
+          )}
+        </div>
+      </div>
+
+      <Button type="submit" disabled={isUpdating} className="w-full md:w-auto">
+        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Salvar Alterações
+      </Button>
+    </form>
   );
 }

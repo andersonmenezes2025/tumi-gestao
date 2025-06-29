@@ -1,30 +1,38 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { useCompany } from '@/hooks/useCompany';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
-import { Loader2, Save, Palette, Upload } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Upload, X } from 'lucide-react';
 
-const visualFormSchema = z.object({
-  primary_color: z.string().min(1, 'Cor primária é obrigatória'),
-  secondary_color: z.string().min(1, 'Cor secundária é obrigatória'),
-  logo_url: z.string().optional(),
+const visualIdentitySchema = z.object({
+  primary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
+  secondary_color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
+  logo_url: z.string().url('URL inválida').optional().or(z.literal('')),
 });
 
-type VisualFormData = z.infer<typeof visualFormSchema>;
+type VisualIdentityFormData = z.infer<typeof visualIdentitySchema>;
 
 export function VisualIdentityForm() {
-  const { company, loading } = useCompany();
-  const { updateCompany } = useCompanySettings();
+  const { company } = useCompany();
+  const { updateCompany, isUpdating } = useCompanySettings();
+  const { toast } = useToast();
+  const [logoPreview, setLogoPreview] = useState<string | null>(company?.logo_url || null);
 
-  const form = useForm<VisualFormData>({
-    resolver: zodResolver(visualFormSchema),
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<VisualIdentityFormData>({
+    resolver: zodResolver(visualIdentitySchema),
     defaultValues: {
       primary_color: company?.primary_color || '#3b82f6',
       secondary_color: company?.secondary_color || '#64748b',
@@ -32,190 +40,161 @@ export function VisualIdentityForm() {
     },
   });
 
-  React.useEffect(() => {
-    if (company) {
-      form.reset({
-        primary_color: company.primary_color || '#3b82f6',
-        secondary_color: company.secondary_color || '#64748b',
-        logo_url: company.logo_url || '',
-      });
-    }
-  }, [company, form]);
+  const primaryColor = watch('primary_color');
+  const secondaryColor = watch('secondary_color');
 
-  const onSubmit = async (data: VisualFormData) => {
+  const onSubmit = async (data: VisualIdentityFormData) => {
     try {
       await updateCompany(data);
       toast({
-        title: 'Sucesso!',
-        description: 'Identidade visual atualizada com sucesso.',
+        title: 'Sucesso',
+        description: 'Identidade visual atualizada com sucesso!',
       });
     } catch (error) {
-      console.error('Error updating visual identity:', error);
+      console.error('Erro ao atualizar identidade visual:', error);
       toast({
-        variant: 'destructive',
         title: 'Erro',
         description: 'Erro ao atualizar identidade visual.',
+        variant: 'destructive',
       });
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const handleLogoUrlChange = (url: string) => {
+    setValue('logo_url', url);
+    setLogoPreview(url);
+  };
+
+  const clearLogo = () => {
+    setValue('logo_url', '');
+    setLogoPreview(null);
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="primary_color"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cor Primária</FormLabel>
-                <FormDescription>
-                  Cor principal da sua marca (botões, destaques)
-                </FormDescription>
-                <FormControl>
-                  <div className="flex items-center gap-3">
-                    <Input
-                      type="color"
-                      className="w-16 h-10 p-1 border rounded"
-                      {...field}
-                    />
-                    <Input
-                      type="text"
-                      placeholder="#3b82f6"
-                      className="flex-1"
-                      {...field}
-                    />
-                    <div 
-                      className="w-10 h-10 rounded border"
-                      style={{ backgroundColor: field.value }}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="secondary_color"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cor Secundária</FormLabel>
-                <FormDescription>
-                  Cor complementar para textos e elementos secundários
-                </FormDescription>
-                <FormControl>
-                  <div className="flex items-center gap-3">
-                    <Input
-                      type="color"
-                      className="w-16 h-10 p-1 border rounded"
-                      {...field}
-                    />
-                    <Input
-                      type="text"
-                      placeholder="#64748b"
-                      className="flex-1"
-                      {...field}
-                    />
-                    <div 
-                      className="w-10 h-10 rounded border"
-                      style={{ backgroundColor: field.value }}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="logo_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL do Logotipo</FormLabel>
-              <FormDescription>
-                URL do seu logotipo (PNG, JPG ou SVG)
-              </FormDescription>
-              <FormControl>
-                <div className="flex items-center gap-3">
-                  <Input 
-                    placeholder="https://exemplo.com/logo.png" 
-                    {...field} 
-                    className="flex-1"
-                  />
-                  <Button type="button" variant="outline" size="sm">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-base font-medium">Logotipo</Label>
+          <p className="text-sm text-muted-foreground mb-4">
+            Adicione o logotipo da sua empresa
+          </p>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="logo_url">URL do Logotipo</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="logo_url"
+                  {...register('logo_url')}
+                  placeholder="https://exemplo.com/logo.png"
+                  onChange={(e) => handleLogoUrlChange(e.target.value)}
+                />
+                {logoPreview && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={clearLogo}
+                  >
+                    <X className="h-4 w-4" />
                   </Button>
-                </div>
-              </FormControl>
-              {field.value && (
-                <div className="mt-3">
-                  <img 
-                    src={field.value} 
-                    alt="Logo preview" 
-                    className="max-w-32 max-h-32 object-contain border rounded"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+                )}
+              </div>
+              {errors.logo_url && (
+                <p className="text-sm text-red-500">{errors.logo_url.message}</p>
+              )}
+            </div>
+
+            {logoPreview && (
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <Label className="text-sm font-medium">Preview:</Label>
+                <div className="mt-2">
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    className="max-h-32 max-w-full object-contain"
+                    onError={() => {
+                      setLogoPreview(null);
+                      toast({
+                        title: 'Erro',
+                        description: 'Não foi possível carregar a imagem.',
+                        variant: 'destructive',
+                      });
                     }}
                   />
                 </div>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="border rounded-lg p-4 bg-muted/30">
-          <h4 className="font-medium mb-3 flex items-center">
-            <Palette className="h-4 w-4 mr-2" />
-            Prévia das Cores
-          </h4>
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <div 
-                className="w-16 h-16 rounded-lg shadow-sm border"
-                style={{ backgroundColor: form.watch('primary_color') }}
-              />
-              <span className="text-xs mt-2 text-muted-foreground">Primária</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <div 
-                className="w-16 h-16 rounded-lg shadow-sm border"
-                style={{ backgroundColor: form.watch('secondary_color') }}
-              />
-              <span className="text-xs mt-2 text-muted-foreground">Secundária</span>
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Salvar Alterações
-              </>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="primary_color">Cor Primária</Label>
+            <div className="flex gap-2">
+              <Input
+                id="primary_color"
+                type="color"
+                {...register('primary_color')}
+                className="w-16 h-10 p-1 border rounded"
+              />
+              <Input
+                {...register('primary_color')}
+                placeholder="#3b82f6"
+                className="flex-1"
+              />
+            </div>
+            {errors.primary_color && (
+              <p className="text-sm text-red-500">{errors.primary_color.message}</p>
             )}
-          </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="secondary_color">Cor Secundária</Label>
+            <div className="flex gap-2">
+              <Input
+                id="secondary_color"
+                type="color"
+                {...register('secondary_color')}
+                className="w-16 h-10 p-1 border rounded"
+              />
+              <Input
+                {...register('secondary_color')}
+                placeholder="#64748b"
+                className="flex-1"
+              />
+            </div>
+            {errors.secondary_color && (
+              <p className="text-sm text-red-500">{errors.secondary_color.message}</p>
+            )}
+          </div>
         </div>
-      </form>
-    </Form>
+
+        <div className="border rounded-lg p-4 bg-gray-50">
+          <Label className="text-sm font-medium">Preview das Cores:</Label>
+          <div className="flex gap-4 mt-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded border"
+                style={{ backgroundColor: primaryColor }}
+              />
+              <span className="text-sm">Primária</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded border"
+                style={{ backgroundColor: secondaryColor }}
+              />
+              <span className="text-sm">Secundária</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Button type="submit" disabled={isUpdating} className="w-full md:w-auto">
+        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Salvar Alterações
+      </Button>
+    </form>
   );
 }

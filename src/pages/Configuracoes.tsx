@@ -6,12 +6,14 @@ import { CompanySettingsForm } from '@/components/settings/CompanySettingsForm';
 import { VisualIdentityForm } from '@/components/settings/VisualIdentityForm';
 import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings';
 import { UserSettings } from '@/components/settings/UserSettings';
+import { SystemHealthCheck } from '@/components/admin/SystemHealthCheck';
 import { 
   Building2, 
   Palette, 
   Plug, 
   User,
-  Settings
+  Settings,
+  Activity
 } from 'lucide-react';
 
 const Configuracoes = () => {
@@ -28,7 +30,7 @@ const Configuracoes = () => {
       </div>
 
       <Tabs defaultValue="company" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Empresa
@@ -47,6 +49,11 @@ const Configuracoes = () => {
           <TabsTrigger value="user" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Perfil
+          </TabsTrigger>
+          
+          <TabsTrigger value="system" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Sistema
           </TabsTrigger>
         </TabsList>
 
@@ -93,17 +100,11 @@ const Configuracoes = () => {
         </TabsContent>
 
         <TabsContent value="user" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Perfil do Usuário</CardTitle>
-              <CardDescription>
-                Gerencie suas informações pessoais
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UserSettings />
-            </CardContent>
-          </Card>
+          <UserSettings />
+        </TabsContent>
+
+        <TabsContent value="system" className="space-y-6">
+          <SystemHealthCheck />
         </TabsContent>
       </Tabs>
     </div>
