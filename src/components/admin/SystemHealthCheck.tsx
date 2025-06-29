@@ -25,6 +25,8 @@ interface HealthCheck {
   icon: React.ReactNode;
 }
 
+type TableName = 'companies' | 'profiles' | 'products' | 'customers';
+
 export function SystemHealthCheck() {
   const { user, profile, company } = useAuth();
   const { hasCompany } = useCompany();
@@ -78,7 +80,7 @@ export function SystemHealthCheck() {
     }
 
     // 5. Verificar tabelas principais
-    const tables = ['companies', 'profiles', 'products', 'customers'];
+    const tables: TableName[] = ['companies', 'profiles', 'products', 'customers'];
     for (const table of tables) {
       try {
         const { error } = await supabase.from(table).select('count').limit(1);
