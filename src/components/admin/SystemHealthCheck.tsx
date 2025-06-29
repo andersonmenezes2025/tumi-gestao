@@ -63,7 +63,7 @@ export function SystemHealthCheck() {
 
     // 4. Testar conexão com banco de dados
     try {
-      const { data, error } = await supabase.from('profiles').select('count').limit(1);
+      const { error } = await supabase.from('profiles').select('count').limit(1);
       healthChecks.push({
         name: 'Conexão com Banco',
         status: error ? 'error' : 'success',
@@ -87,7 +87,7 @@ export function SystemHealthCheck() {
         healthChecks.push({
           name: `Tabela: ${table}`,
           status: error ? 'error' : 'success',
-          message: error ? `Erro ao acessar ${table}` : `Tabela ${table} acessível`,
+          message: error ? `Erro ao acessar ${table}: ${error.message}` : `Tabela ${table} acessível`,
           icon: <Database className="h-4 w-4" />
         });
       } catch (error) {
