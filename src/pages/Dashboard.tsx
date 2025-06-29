@@ -46,11 +46,11 @@ const Dashboard: React.FC = () => {
 
   // Auto-create test company if none exists
   useEffect(() => {
-    if (!companyLoading && !hasCompany && !companyError) {
+    if (!companyLoading && !hasCompany && !companyError && !authError) {
       console.log('No company found, creating test company...');
       handleCreateTestCompany();
     }
-  }, [companyLoading, hasCompany, companyError]);
+  }, [companyLoading, hasCompany, companyError, authError]);
 
   // Loading state
   if (companyLoading || dashboardLoading) {

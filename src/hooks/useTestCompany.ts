@@ -12,7 +12,7 @@ export function useTestCompany() {
     try {
       console.log('Creating test company for user:', user.id);
 
-      // Primeiro, criar a empresa
+      // Criar a empresa com creator_id
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -24,30 +24,30 @@ export function useTestCompany() {
           city: 'São Paulo',
           state: 'SP',
           zip_code: '01000-000',
-          creator_id: user.id,
+          creator_id: user.id, // Importante: definir o creator_id
         })
         .select()
         .single();
 
       if (companyError) {
         console.error('Error creating company:', companyError);
-        return;
+        throw companyError;
       }
 
       console.log('Test company created:', company);
 
-      // Atualizar o perfil do usuário com a empresa
+      // Atualizar o perfil do usuário com a empresa e role admin
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           company_id: company.id,
-          role: 'admin',
+          role: 'admin', // Definir como admin já que criou a empresa
         })
         .eq('id', user.id);
 
       if (profileError) {
         console.error('Error updating profile:', profileError);
-        return;
+        throw profileError;
       }
 
       console.log('Profile updated with company');
@@ -56,8 +56,10 @@ export function useTestCompany() {
       await refreshProfile();
 
       console.log('Test company setup completed');
+      return company;
     } catch (error) {
       console.error('Error in createTestCompany:', error);
+      throw error;
     }
   };
 

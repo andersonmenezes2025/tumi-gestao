@@ -67,62 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setError(null);
         }
       } else {
-        console.log('No company_id in profile');
-        // Criar empresa padrão se o usuário não tiver uma
-        await createDefaultCompany(userId);
+        console.log('No company_id in profile - user needs to create or join a company');
+        setCompany(null);
+        setError(null);
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
       setError('Erro ao carregar dados do usuário');
-    }
-  };
-
-  const createDefaultCompany = async (userId: string) => {
-    try {
-      console.log('Creating default company for user:', userId);
-      
-      // Criar empresa padrão
-      const { data: newCompany, error: companyError } = await supabase
-        .from('companies')
-        .insert([{
-          name: 'Minha Empresa',
-        }])
-        .select()
-        .single();
-
-      if (companyError) {
-        console.error('Error creating company:', companyError);
-        setError('Erro ao criar empresa padrão');
-        return;
-      }
-
-      // Atualizar perfil com a nova empresa
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ company_id: newCompany.id })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('Error updating profile with company:', updateError);
-        setError('Erro ao vincular empresa ao perfil');
-        return;
-      }
-
-      // Buscar o perfil atualizado
-      const { data: updatedProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      setProfile(updatedProfile);
-      setCompany(newCompany);
-      setError(null);
-      
-      console.log('Default company created and linked successfully');
-    } catch (error) {
-      console.error('Error creating default company:', error);
-      setError('Erro ao configurar empresa padrão');
     }
   };
 
