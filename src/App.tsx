@@ -13,6 +13,10 @@ import Produtos from "./pages/Produtos";
 import Clientes from "./pages/Clientes";
 import Financeiro from "./pages/Financeiro";
 import Configuracoes from "./pages/Configuracoes";
+import Vendas from "./pages/Vendas";
+import Relatorios from "./pages/Relatorios";
+import Automacao from "./pages/Automacao";
+import Agenda from "./pages/Agenda";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -38,15 +42,13 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/produtos" element={<Produtos />} />
+                  <Route path="/vendas" element={<Vendas />} />
                   <Route path="/clientes" element={<Clientes />} />
                   <Route path="/financeiro" element={<Financeiro />} />
+                  <Route path="/relatorios" element={<Relatorios />} />
+                  <Route path="/automacao" element={<Automacao />} />
+                  <Route path="/agenda" element={<Agenda />} />
                   <Route path="/configuracoes" element={<Configuracoes />} />
-                  {/* Placeholders para páginas futuras */}
-                  <Route path="/vendas" element={<Dashboard />} />
-                  <Route path="/relatorios" element={<Dashboard />} />
-                  <Route path="/automacao" element={<Dashboard />} />
-                  <Route path="/agenda" element={<Dashboard />} />
-                  {/* Adicione todas as rotas customizadas ANTES da rota catch-all "*" */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>

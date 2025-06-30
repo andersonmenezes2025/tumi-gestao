@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
-import { useToast } from '@/hooks/use-toast';
 
 interface DashboardStats {
   totalProducts: number;
@@ -24,7 +23,6 @@ export function useDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const { companyId, hasCompany } = useCompany();
-  const { toast } = useToast();
 
   const fetchDashboardStats = async () => {
     if (!companyId || !hasCompany) {
@@ -42,63 +40,72 @@ export function useDashboard() {
     }
     
     console.log('Fetching dashboard stats for company:', companyId);
+    setLoading(true);
     
     try {
-      // Fetch products stats
-      const { data: products, error: productsError } = await supabase
-        .from('products')
-        .select('stock_quantity, min_stock')
-        .eq('company_id', companyId);
+      // Buscar estatísticas em paralelo
+      const [productsResult, customersResult, salesResult] = await Promise.allSettled([
+        supabase
+          .from('products')
+          .select('stock_quantity, min_stock')
+          .eq('company_id', companyId),
+        supabase
+          .from('customers')
+          .select('active')
+          .eq('company_id', companyId),
+        supabase
+          .from('sales')
+          .select('total_amount, created_at')
+          .eq('company_id', companyId)
+      ]);
 
-      if (productsError) {
-        console.error('Products error:', productsError);
+      // Processar resultados de produtos
+      let totalProducts = 0;
+      let lowStockProducts = 0;
+      if (productsResult.status === 'fulfilled' && productsResult.value.data) {
+        const products = productsResult.value.data;
+        totalProducts = products.length;
+        lowStockProducts = products.filter(p => 
+          (p.stock_quantity || 0) <= (p.min_stock || 0)
+        ).length;
       }
 
-      // Fetch customers stats
-      const { data: customers, error: customersError } = await supabase
-        .from('customers')
-        .select('active')
-        .eq('company_id', companyId);
-
-      if (customersError) {
-        console.error('Customers error:', customersError);
+      // Processar resultados de clientes
+      let totalCustomers = 0;
+      let activeCustomers = 0;
+      if (customersResult.status === 'fulfilled' && customersResult.value.data) {
+        const customers = customersResult.value.data;
+        totalCustomers = customers.length;
+        activeCustomers = customers.filter(c => c.active).length;
       }
 
-      // Fetch sales stats
-      const { data: sales, error: salesError } = await supabase
-        .from('sales')
-        .select('total_amount, created_at')
-        .eq('company_id', companyId);
+      // Processar resultados de vendas
+      let totalSales = 0;
+      let monthlyRevenue = 0;
+      if (salesResult.status === 'fulfilled' && salesResult.value.data) {
+        const sales = salesResult.value.data;
+        totalSales = sales.length;
 
-      if (salesError) {
-        console.error('Sales error:', salesError);
+        // Calcular receita mensal (mês atual)
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        monthlyRevenue = sales.reduce((sum, sale) => {
+          const saleDate = new Date(sale.created_at || '');
+          if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+            return sum + (sale.total_amount || 0);
+          }
+          return sum;
+        }, 0);
       }
 
-      console.log('Dashboard data fetched:', { 
-        products: products?.length || 0, 
-        customers: customers?.length || 0, 
-        sales: sales?.length || 0
+      console.log('Dashboard stats calculated:', {
+        totalProducts,
+        totalCustomers,
+        lowStockProducts,
+        activeCustomers,
+        totalSales,
+        monthlyRevenue
       });
-
-      // Calculate stats with fallbacks
-      const totalProducts = products?.length || 0;
-      const totalCustomers = customers?.length || 0;
-      const lowStockProducts = products?.filter(p => 
-        (p.stock_quantity || 0) <= (p.min_stock || 0)
-      ).length || 0;
-      const activeCustomers = customers?.filter(c => c.active).length || 0;
-      const totalSales = sales?.length || 0;
-
-      // Calculate monthly revenue (current month)
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const monthlyRevenue = sales?.reduce((sum, sale) => {
-        const saleDate = new Date(sale.created_at || '');
-        if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
-          return sum + (sale.total_amount || 0);
-        }
-        return sum;
-      }, 0) || 0;
 
       setStats({
         totalProducts,
@@ -111,7 +118,7 @@ export function useDashboard() {
 
     } catch (error: any) {
       console.error('Error fetching dashboard stats:', error);
-      // Don't show toast error for dashboard stats, just log it
+      // Em caso de erro, manter valores zerados
       setStats({
         totalProducts: 0,
         totalCustomers: 0,
@@ -120,24 +127,14 @@ export function useDashboard() {
         totalSales: 0,
         monthlyRevenue: 0
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     console.log('Dashboard hook effect - companyId:', companyId, 'hasCompany:', hasCompany);
-    
-    if (hasCompany && companyId) {
-      fetchDashboardStats().finally(() => {
-        setLoading(false);
-      });
-    } else {
-      // Se não tem empresa, define loading como false após um tempo
-      const timer = setTimeout(() => {
-        setLoading(false);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
+    fetchDashboardStats();
   }, [companyId, hasCompany]);
 
   return {
