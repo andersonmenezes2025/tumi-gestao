@@ -95,25 +95,25 @@ export default function Dashboard() {
           title="Produtos"
           value={stats.totalProducts}
           description="Total cadastrado"
-          icon="package"
+          icon="Package"
         />
         <StatsCard
           title="Clientes"
           value={stats.totalCustomers}
           description={`${stats.activeCustomers} ativos`}
-          icon="users"
+          icon="Users"
         />
         <StatsCard
           title="Vendas"
           value={stats.totalSales}
           description="Este mês"
-          icon="shopping-cart"
+          icon="ShoppingCart"
         />
         <StatsCard
           title="Receita"
           value={`R$ ${stats.monthlyRevenue.toFixed(2).replace('.', ',')}`}
           description="Este mês"
-          icon="dollar-sign"
+          icon="DollarSign"
         />
       </div>
 
@@ -162,7 +162,7 @@ export default function Dashboard() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }
