@@ -93,25 +93,25 @@ export default function Dashboard() {
         <StatsCard
           title="Produtos"
           value={stats.totalProducts}
-          description="Total cadastrado"
+          change="Total cadastrado"
           icon={Package}
         />
         <StatsCard
           title="Clientes"
           value={stats.totalCustomers}
-          description={`${stats.activeCustomers} ativos`}
+          change={`${stats.activeCustomers} ativos`}
           icon={Users}
         />
         <StatsCard
           title="Vendas"
           value={stats.totalSales}
-          description="Este mês"
+          change="Este mês"
           icon={ShoppingCart}
         />
         <StatsCard
           title="Receita"
           value={`R$ ${stats.monthlyRevenue.toFixed(2).replace('.', ',')}`}
-          description="Este mês"
+          change="Este mês"
           icon={DollarSign}
         />
       </div>
