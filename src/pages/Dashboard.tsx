@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { useTestData } from '@/hooks/useTestData';
-import { Loader2, TestTube, Plus, Database } from 'lucide-react';
+import { Loader2, TestTube, Plus, Database, Package, Users, ShoppingCart, DollarSign } from 'lucide-react';
 
 export default function Dashboard() {
   const { stats, loading } = useDashboard();
@@ -95,25 +94,25 @@ export default function Dashboard() {
           title="Produtos"
           value={stats.totalProducts}
           description="Total cadastrado"
-          icon="Package"
+          icon={Package}
         />
         <StatsCard
           title="Clientes"
           value={stats.totalCustomers}
           description={`${stats.activeCustomers} ativos`}
-          icon="Users"
+          icon={Users}
         />
         <StatsCard
           title="Vendas"
           value={stats.totalSales}
           description="Este mês"
-          icon="ShoppingCart"
+          icon={ShoppingCart}
         />
         <StatsCard
           title="Receita"
           value={`R$ ${stats.monthlyRevenue.toFixed(2).replace('.', ',')}`}
           description="Este mês"
-          icon="DollarSign"
+          icon={DollarSign}
         />
       </div>
 
