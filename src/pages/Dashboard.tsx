@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,15 +8,15 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCompany } from '@/hooks/useCompany';
 import { useTestData } from '@/hooks/useTestData';
 import { Loader2, TestTube, Plus, Database, Package, Users, ShoppingCart, DollarSign } from 'lucide-react';
 
 export default function Dashboard() {
-  const { stats, loading } = useDashboard();
-  const { user, profile, company } = useAuth();
-  const { hasCompany } = useCompany();
+  const { stats, loading: statsLoading } = useDashboard();
+  const { user, profile, company, loading: authLoading, error } = useAuth();
   const { createCompleteTestData, createTestCompany } = useTestData();
+
+  const loading = authLoading || statsLoading;
 
   const handleCreateTestData = async () => {
     await createCompleteTestData();
@@ -25,7 +26,7 @@ export default function Dashboard() {
     await createTestCompany();
   };
 
-  console.log('Dashboard - Auth state:', { user: !!user, profile: !!profile, company: !!company, hasCompany });
+  console.log('Dashboard - Auth state:', { user: !!user, profile: !!profile, company: !!company, loading, error });
 
   if (loading) {
     return (
@@ -35,7 +36,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!hasCompany) {
+  if (!company) {
     return (
       <div className="container mx-auto py-6 space-y-6">
         <Card>
@@ -65,6 +66,11 @@ export default function Dashboard() {
                 <p><strong>Empresa:</strong> {company?.name || 'Nenhuma empresa associada'}</p>
               </div>
             </div>
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -77,7 +83,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Visão geral do seu negócio - {company?.name}
+            Visão geral do seu negócio - {company.name}
           </p>
         </div>
         <div className="flex gap-2">

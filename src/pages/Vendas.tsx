@@ -2,16 +2,20 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Filter, Eye, Edit, Trash } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useCompany } from '@/hooks/useCompany';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Vendas() {
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
-  const { hasCompany, company } = useCompany();
+  const { company, loading } = useAuth();
+
+  console.log('Vendas - Company:', company);
+  console.log('Vendas - Loading:', loading);
+  console.log('Vendas - Has Company:', !!company);
 
   // Dados mock para teste
   const mockSales = [
@@ -60,7 +64,15 @@ export default function Vendas() {
     return statusMap[status as keyof typeof statusMap] || { label: status, variant: 'outline' as const };
   };
 
-  if (!hasCompany) {
+  if (loading) {
+    return (
+      <div className="container mx-auto py-6 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!company) {
     return (
       <div className="container mx-auto py-6">
         <Card>
@@ -70,6 +82,11 @@ export default function Vendas() {
               Você precisa estar associado a uma empresa para gerenciar vendas.
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Vá para o Dashboard para criar ou entrar em uma empresa.
+            </p>
+          </CardContent>
         </Card>
       </div>
     );
@@ -81,7 +98,7 @@ export default function Vendas() {
         <div>
           <h1 className="text-3xl font-bold">Vendas</h1>
           <p className="text-muted-foreground">
-            Gerencie suas vendas e pedidos - {company?.name}
+            Gerencie suas vendas e pedidos - {company.name}
           </p>
         </div>
         <Button onClick={handleNewSale} className="gap-2">

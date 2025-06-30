@@ -42,13 +42,14 @@ export function useProfileManager() {
         
         if (companyError) {
           console.error('Error fetching company:', companyError);
-          setError('Erro ao carregar dados da empresa');
+          // Não definir como erro se empresa não for encontrada
+          console.log('Company not found, user needs to create or join a company');
           setCompany(null);
         } else {
           console.log('Company data:', companyData);
           setCompany(companyData);
-          setError(null);
         }
+        setError(null);
       } else {
         console.log('No company_id in profile - user needs to create or join a company');
         setCompany(null);
