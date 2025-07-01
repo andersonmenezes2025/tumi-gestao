@@ -21,9 +21,10 @@ interface ProductFormFieldsProps {
   formData: ProductFormData;
   setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>;
   categories: ProductCategory[];
+  errors: Record<string, string>;
 }
 
-export function ProductFormFields({ formData, setFormData, categories }: ProductFormFieldsProps) {
+export function ProductFormFields({ formData, setFormData, categories, errors }: ProductFormFieldsProps) {
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
@@ -35,6 +36,7 @@ export function ProductFormFields({ formData, setFormData, categories }: Product
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
             required
           />
+          {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
         </div>
         
         <div className="space-y-2">
@@ -74,6 +76,7 @@ export function ProductFormFields({ formData, setFormData, categories }: Product
             onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
             required
           />
+          {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
         </div>
         
         <div className="space-y-2">
@@ -85,6 +88,7 @@ export function ProductFormFields({ formData, setFormData, categories }: Product
             value={formData.cost_price || 0}
             onChange={(e) => setFormData(prev => ({ ...prev, cost_price: parseFloat(e.target.value) || 0 }))}
           />
+          {errors.cost_price && <p className="text-sm text-red-500">{errors.cost_price}</p>}
         </div>
       </div>
 
