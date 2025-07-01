@@ -13,6 +13,19 @@ interface AuthFormProps {
   onSuccess?: () => void;
 }
 
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password: string): boolean => {
+  return password.length >= 6;
+};
+
+const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '');
+};
+
 export function AuthForm({ onSuccess }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -23,11 +36,30 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateEmail(email)) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, informe um email válido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      toast({
+        title: "Senha inválida",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: sanitizeInput(email),
         password,
       });
 
@@ -35,7 +67,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         if (error.message.includes('Invalid login credentials')) {
           throw new Error('Email ou senha incorretos');
         }
-        throw error;
+        throw new Error('Erro ao fazer login. Tente novamente.');
       }
 
       toast({
@@ -45,7 +77,6 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
 
       onSuccess?.();
     } catch (error: any) {
-      console.error('Sign in error:', error);
       toast({
         title: "Erro no login",
         description: error.message || "Erro desconhecido",
@@ -59,7 +90,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fullName.trim()) {
+    if (!sanitizeInput(fullName).trim()) {
       toast({
         title: "Nome obrigatório",
         description: "Por favor, informe seu nome completo",
@@ -68,7 +99,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       return;
     }
 
-    if (!companyName.trim()) {
+    if (!sanitizeInput(companyName).trim()) {
       toast({
         title: "Nome da empresa obrigatório",
         description: "Por favor, informe o nome da sua empresa",
@@ -77,17 +108,35 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       return;
     }
 
+    if (!validateEmail(email)) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, informe um email válido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      toast({
+        title: "Senha inválida",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Primeiro, criar a conta do usuário
+      // Create user account
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: sanitizeInput(email),
         password,
         options: {
           data: {
-            full_name: fullName,
-            company_name: companyName,
+            full_name: sanitizeInput(fullName),
+            company_name: sanitizeInput(companyName),
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -97,37 +146,35 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         if (authError.message.includes('User already registered')) {
           throw new Error('Este email já está cadastrado. Tente fazer login.');
         }
-        throw authError;
+        throw new Error('Erro ao criar conta. Tente novamente.');
       }
 
       if (authData.user) {
-        // Criar empresa
+        // Create company
         const { data: company, error: companyError } = await supabase
           .from('companies')
           .insert([{ 
-            name: companyName.trim()
+            name: sanitizeInput(companyName).trim()
           }])
           .select()
           .single();
 
         if (companyError) {
-          console.error('Company creation error:', companyError);
           throw new Error('Erro ao criar empresa');
         }
 
-        // Criar perfil do usuário
+        // Create user profile
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
             id: authData.user.id,
             company_id: company.id,
-            full_name: fullName.trim(),
-            email: email,
+            full_name: sanitizeInput(fullName).trim(),
+            email: sanitizeInput(email),
             role: 'admin'
           }]);
 
         if (profileError) {
-          console.error('Profile creation error:', profileError);
           throw new Error('Erro ao criar perfil do usuário');
         }
 
@@ -141,7 +188,6 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         onSuccess?.();
       }
     } catch (error: any) {
-      console.error('Sign up error:', error);
       toast({
         title: "Erro no cadastro",
         description: error.message || "Erro desconhecido",
@@ -185,6 +231,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
+                    maxLength={254}
                   />
                 </div>
                 <div className="space-y-2">
@@ -197,6 +244,8 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
+                    minLength={6}
+                    maxLength={128}
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
@@ -219,6 +268,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     onChange={(e) => setFullName(e.target.value)}
                     required
                     disabled={isLoading}
+                    maxLength={100}
                   />
                 </div>
                 <div className="space-y-2">
@@ -231,6 +281,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     onChange={(e) => setCompanyName(e.target.value)}
                     required
                     disabled={isLoading}
+                    maxLength={100}
                   />
                 </div>
                 <div className="space-y-2">
@@ -243,6 +294,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
+                    maxLength={254}
                   />
                 </div>
                 <div className="space-y-2">
@@ -255,6 +307,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
+                    maxLength={128}
                     disabled={isLoading}
                   />
                 </div>

@@ -18,9 +18,26 @@ interface CustomerFormProps {
   customer?: Customer | null;
 }
 
+const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '');
+};
+
+const validateEmail = (email: string): boolean => {
+  if (!email) return true; // Email is optional
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePhone = (phone: string): boolean => {
+  if (!phone) return true; // Phone is optional
+  const phoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
+  return phoneRegex.test(phone);
+};
+
 export function CustomerForm({ open, onOpenChange, onSubmit, customer }: CustomerFormProps) {
   const { companyId } = useCompany();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: customer?.name || '',
     email: customer?.email || '',
@@ -36,17 +53,70 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
     active: customer?.active ?? true
   });
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Nome é obrigatório';
+    } else if (formData.name.length > 100) {
+      newErrors.name = 'Nome muito longo';
+    }
+
+    if (formData.email && !validateEmail(formData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+
+    if (formData.phone && !validatePhone(formData.phone)) {
+      newErrors.phone = 'Formato de telefone inválido';
+    }
+
+    if (formData.document && formData.document_type === 'cpf') {
+      const cpfRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
+      if (!cpfRegex.test(formData.document)) {
+        newErrors.document = 'CPF inválido';
+      }
+    }
+
+    if (formData.document && formData.document_type === 'cnpj') {
+      const cnpjRegex = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/;
+      if (!cnpjRegex.test(formData.document)) {
+        newErrors.document = 'CNPJ inválido';
+      }
+    }
+
+    if (formData.zip_code && !/^\d{5}-\d{3}$/.test(formData.zip_code)) {
+      newErrors.zip_code = 'CEP inválido';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyId) return;
 
+    if (!validateForm()) return;
+
     setLoading(true);
     try {
-      await onSubmit({
-        ...formData,
+      const sanitizedData = {
+        name: sanitizeInput(formData.name),
+        email: formData.email ? sanitizeInput(formData.email) : null,
+        phone: formData.phone ? sanitizeInput(formData.phone) : null,
+        document: formData.document ? sanitizeInput(formData.document) : null,
+        document_type: formData.document_type,
+        address: formData.address ? sanitizeInput(formData.address) : null,
+        city: formData.city ? sanitizeInput(formData.city) : null,
+        state: formData.state ? sanitizeInput(formData.state) : null,
+        zip_code: formData.zip_code ? sanitizeInput(formData.zip_code) : null,
+        birth_date: formData.birth_date || null,
+        notes: formData.notes ? sanitizeInput(formData.notes) : null,
+        active: formData.active,
         company_id: companyId,
-        birth_date: formData.birth_date || null
-      });
+      };
+
+      await onSubmit(sanitizedData);
       onOpenChange(false);
       setFormData({
         name: '',
@@ -62,8 +132,9 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
         notes: '',
         active: true
       });
+      setErrors({});
     } catch (error) {
-      console.error('Erro ao salvar cliente:', error);
+      // Error handling is done in the parent component
     } finally {
       setLoading(false);
     }
@@ -85,7 +156,9 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 required
+                maxLength={100}
               />
+              {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
             </div>
             
             <div className="space-y-2">
@@ -95,7 +168,9 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
                 type="email"
                 value={formData.email || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                maxLength={254}
               />
+              {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
             </div>
           </div>
 
@@ -106,7 +181,10 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
                 id="phone"
                 value={formData.phone || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="(11) 99999-9999"
+                maxLength={15}
               />
+              {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
             </div>
             
             <div className="space-y-2">
@@ -141,7 +219,9 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
                 id="document"
                 value={formData.document || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, document: e.target.value }))}
+                maxLength={20}
               />
+              {errors.document && <p className="text-sm text-red-500">{errors.document}</p>}
             </div>
           </div>
 
@@ -151,6 +231,7 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
               id="address"
               value={formData.address || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+              maxLength={200}
             />
           </div>
 
@@ -161,6 +242,7 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
                 id="city"
                 value={formData.city || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                maxLength={50}
               />
             </div>
             
@@ -170,6 +252,7 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
                 id="state"
                 value={formData.state || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                maxLength={50}
               />
             </div>
             
@@ -179,7 +262,10 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
                 id="zip_code"
                 value={formData.zip_code || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, zip_code: e.target.value }))}
+                placeholder="00000-000"
+                maxLength={9}
               />
+              {errors.zip_code && <p className="text-sm text-red-500">{errors.zip_code}</p>}
             </div>
           </div>
 
@@ -189,6 +275,7 @@ export function CustomerForm({ open, onOpenChange, onSubmit, customer }: Custome
               id="notes"
               value={formData.notes || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              maxLength={500}
             />
           </div>
 

@@ -13,11 +13,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, User } from 'lucide-react';
 
 const userSchema = z.object({
-  full_name: z.string().min(1, 'Nome é obrigatório'),
-  phone: z.string().optional(),
+  full_name: z.string()
+    .min(1, 'Nome é obrigatório')
+    .max(100, 'Nome muito longo')
+    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, 'Nome deve conter apenas letras'),
+  phone: z.string()
+    .optional()
+    .refine((val) => !val || /^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(val), 'Formato de telefone inválido'),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
+
+const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '');
+};
 
 export function UserSettings() {
   const { user, profile, refreshProfile } = useAuth();
@@ -41,16 +50,20 @@ export function UserSettings() {
 
     setIsUpdating(true);
     try {
+      const sanitizedData = {
+        full_name: sanitizeInput(data.full_name),
+        phone: data.phone ? sanitizeInput(data.phone) : null,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: data.full_name,
-          phone: data.phone,
-          updated_at: new Date().toISOString(),
-        })
+        .update(sanitizedData)
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        throw new Error('Erro ao atualizar perfil');
+      }
 
       await refreshProfile();
       
@@ -59,7 +72,6 @@ export function UserSettings() {
         description: 'Perfil atualizado com sucesso!',
       });
     } catch (error) {
-      console.error('Erro ao atualizar perfil:', error);
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar perfil.',
@@ -104,6 +116,7 @@ export function UserSettings() {
                 id="full_name"
                 {...register('full_name')}
                 placeholder="Seu nome completo"
+                maxLength={100}
               />
               {errors.full_name && (
                 <p className="text-sm text-red-500">{errors.full_name.message}</p>
@@ -116,7 +129,11 @@ export function UserSettings() {
                 id="phone"
                 {...register('phone')}
                 placeholder="(11) 99999-9999"
+                maxLength={15}
               />
+              {errors.phone && (
+                <p className="text-sm text-red-500">{errors.phone.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">

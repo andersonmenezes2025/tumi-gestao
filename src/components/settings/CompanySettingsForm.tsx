@@ -13,18 +13,36 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const companySchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
-  cnpj: z.string().optional(),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip_code: z.string().optional(),
-  website: z.string().url('URL inválida').optional().or(z.literal('')),
+  name: z.string()
+    .min(1, 'Nome é obrigatório')
+    .max(100, 'Nome muito longo'),
+  cnpj: z.string()
+    .optional()
+    .refine((val) => !val || /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(val), 'CNPJ inválido'),
+  email: z.string()
+    .email('Email inválido')
+    .optional()
+    .or(z.literal('')),
+  phone: z.string()
+    .optional()
+    .refine((val) => !val || /^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(val), 'Formato de telefone inválido'),
+  address: z.string().max(200, 'Endereço muito longo').optional(),
+  city: z.string().max(50, 'Nome da cidade muito longo').optional(),
+  state: z.string().max(50, 'Nome do estado muito longo').optional(),
+  zip_code: z.string()
+    .optional()
+    .refine((val) => !val || /^\d{5}-\d{3}$/.test(val), 'CEP inválido'),
+  website: z.string()
+    .url('URL inválida')
+    .optional()
+    .or(z.literal('')),
 });
 
 type CompanyFormData = z.infer<typeof companySchema>;
+
+const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '');
+};
 
 export function CompanySettingsForm() {
   const { company } = useCompany();
@@ -52,13 +70,24 @@ export function CompanySettingsForm() {
 
   const onSubmit = async (data: CompanyFormData) => {
     try {
-      await updateCompany(data);
+      const sanitizedData = {
+        name: sanitizeInput(data.name),
+        cnpj: data.cnpj ? sanitizeInput(data.cnpj) : null,
+        email: data.email ? sanitizeInput(data.email) : null,
+        phone: data.phone ? sanitizeInput(data.phone) : null,
+        address: data.address ? sanitizeInput(data.address) : null,
+        city: data.city ? sanitizeInput(data.city) : null,
+        state: data.state ? sanitizeInput(data.state) : null,
+        zip_code: data.zip_code ? sanitizeInput(data.zip_code) : null,
+        website: data.website ? sanitizeInput(data.website) : null,
+      };
+
+      await updateCompany(sanitizedData);
       toast({
         title: 'Sucesso',
         description: 'Informações da empresa atualizadas com sucesso!',
       });
     } catch (error) {
-      console.error('Erro ao atualizar empresa:', error);
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar informações da empresa.',
@@ -76,6 +105,7 @@ export function CompanySettingsForm() {
             id="name"
             {...register('name')}
             placeholder="Nome da sua empresa"
+            maxLength={100}
           />
           {errors.name && (
             <p className="text-sm text-red-500">{errors.name.message}</p>
@@ -88,7 +118,11 @@ export function CompanySettingsForm() {
             id="cnpj"
             {...register('cnpj')}
             placeholder="00.000.000/0000-00"
+            maxLength={18}
           />
+          {errors.cnpj && (
+            <p className="text-sm text-red-500">{errors.cnpj.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -98,6 +132,7 @@ export function CompanySettingsForm() {
             type="email"
             {...register('email')}
             placeholder="contato@empresa.com"
+            maxLength={254}
           />
           {errors.email && (
             <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -110,7 +145,11 @@ export function CompanySettingsForm() {
             id="phone"
             {...register('phone')}
             placeholder="(11) 99999-9999"
+            maxLength={15}
           />
+          {errors.phone && (
+            <p className="text-sm text-red-500">{errors.phone.message}</p>
+          )}
         </div>
 
         <div className="space-y-2 md:col-span-2">
@@ -120,7 +159,11 @@ export function CompanySettingsForm() {
             {...register('address')}
             placeholder="Rua, número, complemento"
             rows={2}
+            maxLength={200}
           />
+          {errors.address && (
+            <p className="text-sm text-red-500">{errors.address.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -129,7 +172,11 @@ export function CompanySettingsForm() {
             id="city"
             {...register('city')}
             placeholder="Cidade"
+            maxLength={50}
           />
+          {errors.city && (
+            <p className="text-sm text-red-500">{errors.city.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -138,7 +185,11 @@ export function CompanySettingsForm() {
             id="state"
             {...register('state')}
             placeholder="Estado"
+            maxLength={50}
           />
+          {errors.state && (
+            <p className="text-sm text-red-500">{errors.state.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -147,7 +198,11 @@ export function CompanySettingsForm() {
             id="zip_code"
             {...register('zip_code')}
             placeholder="00000-000"
+            maxLength={9}
           />
+          {errors.zip_code && (
+            <p className="text-sm text-red-500">{errors.zip_code.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -156,6 +211,7 @@ export function CompanySettingsForm() {
             id="website"
             {...register('website')}
             placeholder="https://www.empresa.com"
+            maxLength={200}
           />
           {errors.website && (
             <p className="text-sm text-red-500">{errors.website.message}</p>

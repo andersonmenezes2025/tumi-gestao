@@ -22,7 +22,7 @@ interface ProductFormProps {
 
 export function ProductForm({ open, onOpenChange, onSubmit, categories, product }: ProductFormProps) {
   const { companyId } = useCompany();
-  const { formData, setFormData, loading, handleSubmit } = useProductForm({
+  const { formData, setFormData, loading, handleSubmit, errors } = useProductForm({
     product,
     companyId,
     onSubmit,
@@ -41,16 +41,19 @@ export function ProductForm({ open, onOpenChange, onSubmit, categories, product 
             formData={formData}
             setFormData={setFormData}
             categories={categories}
+            errors={errors}
           />
 
           <ProductStockFields 
             formData={formData}
             setFormData={setFormData}
+            errors={errors}
           />
 
           <ProductDetailsFields 
             formData={formData}
             setFormData={setFormData}
+            errors={errors}
           />
 
           <div className="flex justify-end gap-2 pt-4">

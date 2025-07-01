@@ -11,7 +11,6 @@ export function useProfileManager() {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
       setError(null);
       
       const { data: profileData, error: profileError } = await supabase
@@ -21,19 +20,15 @@ export function useProfileManager() {
         .maybeSingle();
 
       if (profileError) {
-        console.error('Error fetching profile:', profileError);
         setError('Erro ao carregar perfil do usuário');
         setProfile(null);
         setCompany(null);
         return;
       }
 
-      console.log('Profile data:', profileData);
       setProfile(profileData);
       
       if (profileData?.company_id) {
-        console.log('Fetching company for ID:', profileData.company_id);
-        
         const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('*')
@@ -41,21 +36,16 @@ export function useProfileManager() {
           .maybeSingle();
         
         if (companyError) {
-          console.error('Error fetching company:', companyError);
-          console.log('Company not found, user needs to create or join a company');
           setCompany(null);
         } else {
-          console.log('Company data:', companyData);
           setCompany(companyData);
         }
         setError(null);
       } else {
-        console.log('No company_id in profile - user needs to create or join a company');
         setCompany(null);
         setError(null);
       }
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
       setError('Erro ao carregar dados do usuário');
     }
   };

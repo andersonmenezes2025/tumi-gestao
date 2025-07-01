@@ -22,7 +22,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
   }
 
   private handleRefresh = () => {
@@ -42,7 +45,7 @@ class ErrorBoundary extends Component<Props, State> {
               <p className="text-gray-600 mb-4">
                 Ocorreu um erro inesperado. Tente recarregar a página.
               </p>
-              {this.state.error && (
+              {process.env.NODE_ENV === 'development' && this.state.error && (
                 <details className="text-left text-sm text-gray-500 bg-gray-100 p-3 rounded mb-4">
                   <summary className="cursor-pointer font-medium">
                     Detalhes técnicos
