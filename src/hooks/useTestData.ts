@@ -20,19 +20,19 @@ export function useTestData() {
     try {
       console.log('Criando empresa de teste para usuário:', user.id);
 
-      // Criar a empresa
+      // Criar a empresa (removendo CNPJ fixo para evitar conflitos)
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
           name: 'Empresa de Teste GestãoPro',
           email: 'contato@gestaopro.com.br',
           phone: '(11) 99999-9999',
-          cnpj: '12.345.678/0001-90',
           address: 'Av. Paulista, 1000',
           city: 'São Paulo',
           state: 'SP',
           zip_code: '01310-100',
           creator_id: user.id,
+          // Removendo CNPJ para evitar conflitos em testes repetidos
         })
         .select()
         .single();
