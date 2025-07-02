@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Calendar, BarChart, TrendingUp, DollarSign, Users } from 'lucide-react';
@@ -79,7 +79,7 @@ export default function Relatorios() {
         <div>
           <h1 className="text-3xl font-bold">Relatórios</h1>
           <p className="text-muted-foreground">
-            Análises e relatórios detalhados do seu negócio - {company?.name}
+            Análises e relatórios detalhados do seu negócio - {company?.name || 'Sua Empresa'}
           </p>
         </div>
       </div>

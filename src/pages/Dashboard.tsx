@@ -7,16 +7,16 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { useDashboard } from '@/hooks/useDashboard';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/hooks/useCompany';
 import { useTestData } from '@/hooks/useTestData';
 import { Loader2, TestTube, Plus, Database, Package, Users, ShoppingCart, DollarSign } from 'lucide-react';
 
 export default function Dashboard() {
   const { stats, loading: statsLoading } = useDashboard();
-  const { user, profile, company, loading: authLoading, error } = useAuth();
+  const { hasCompany, company, loading: companyLoading, error } = useCompany();
   const { createCompleteTestData, createTestCompany } = useTestData();
 
-  const loading = authLoading || statsLoading;
+  const loading = companyLoading || statsLoading;
 
   const handleCreateTestData = async () => {
     await createCompleteTestData();
@@ -26,7 +26,7 @@ export default function Dashboard() {
     await createTestCompany();
   };
 
-  console.log('Dashboard - Auth state:', { user: !!user, profile: !!profile, company: !!company, loading, error });
+  console.log('Dashboard - Has Company:', hasCompany, 'Company:', company);
 
   if (loading) {
     return (
@@ -36,7 +36,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!company) {
+  if (!hasCompany) {
     return (
       <div className="container mx-auto py-6 space-y-6">
         <Card>
@@ -57,15 +57,6 @@ export default function Dashboard() {
                 Entrar em Empresa Existente
               </Button>
             </div>
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h3 className="font-medium mb-2">Informações do Usuário:</h3>
-              <div className="text-sm space-y-1">
-                <p><strong>Email:</strong> {user?.email}</p>
-                <p><strong>Nome:</strong> {profile?.full_name || 'Não informado'}</p>
-                <p><strong>Role:</strong> {profile?.role || 'Não definido'}</p>
-                <p><strong>Empresa:</strong> {company?.name || 'Nenhuma empresa associada'}</p>
-              </div>
-            </div>
             {error && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-red-600 text-sm">{error}</p>
@@ -83,7 +74,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Visão geral do seu negócio - {company.name}
+            Visão geral do seu negócio - {company?.name || 'Sua Empresa'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -147,27 +138,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
-      {/* Informações de debug (apenas para desenvolvimento) */}
-      <Card className="bg-muted/50">
-        <CardHeader>
-          <CardTitle className="text-sm">Informações do Sistema</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p><strong>Usuário ID:</strong> {user?.id}</p>
-              <p><strong>Email:</strong> {user?.email}</p>
-              <p><strong>Nome:</strong> {profile?.full_name || 'Não informado'}</p>
-            </div>
-            <div>
-              <p><strong>Empresa:</strong> {company?.name || 'Não associado'}</p>
-              <p><strong>Empresa ID:</strong> {company?.id || 'N/A'}</p>
-              <p><strong>Role:</strong> {profile?.role || 'Não definido'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

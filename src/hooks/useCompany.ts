@@ -8,11 +8,14 @@ export function useCompany() {
   console.log('useCompany - Profile:', profile);
   console.log('useCompany - Has company:', !!company);
   
+  // Verificar se tem empresa pelo company_id do profile ou pela empresa direta
+  const hasCompany = !!(company?.id || profile?.company_id);
+  
   return {
     company,
-    companyId: company?.id,
+    companyId: company?.id || profile?.company_id,
     isAdmin: profile?.role === 'admin',
-    hasCompany: !!company && !!company.id,
+    hasCompany,
     error,
     loading: loading && !error
   };

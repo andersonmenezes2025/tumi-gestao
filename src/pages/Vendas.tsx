@@ -6,16 +6,14 @@ import { Plus, Search, Filter, Eye, Edit, Trash, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/hooks/useCompany';
 
 export default function Vendas() {
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
-  const { company, loading } = useAuth();
+  const { hasCompany, company, loading } = useCompany();
 
-  console.log('Vendas - Company:', company);
-  console.log('Vendas - Loading:', loading);
-  console.log('Vendas - Has Company:', !!company);
+  console.log('Vendas - Has Company:', hasCompany, 'Company:', company);
 
   // Dados mock para teste
   const mockSales = [
@@ -72,7 +70,7 @@ export default function Vendas() {
     );
   }
 
-  if (!company) {
+  if (!hasCompany) {
     return (
       <div className="container mx-auto py-6">
         <Card>
@@ -98,7 +96,7 @@ export default function Vendas() {
         <div>
           <h1 className="text-3xl font-bold">Vendas</h1>
           <p className="text-muted-foreground">
-            Gerencie suas vendas e pedidos - {company.name}
+            Gerencie suas vendas e pedidos - {company?.name || 'Sua Empresa'}
           </p>
         </div>
         <Button onClick={handleNewSale} className="gap-2">
