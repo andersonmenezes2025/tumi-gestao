@@ -3,6 +3,8 @@ import React from 'react';
 import { Plus, ShoppingCart, Users, Package, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const actions = [
   {
@@ -10,32 +12,42 @@ const actions = [
     label: 'Nova Venda',
     description: 'Iniciar um novo pedido',
     color: 'bg-green-500 hover:bg-green-600',
-    href: '/vendas/nova'
+    route: '/vendas'
   },
   {
     icon: Package,
     label: 'Cadastrar Produto',
     description: 'Adicionar item ao estoque',
     color: 'bg-blue-500 hover:bg-blue-600',
-    href: '/produtos/novo'
+    route: '/produtos'
   },
   {
     icon: Users,
     label: 'Novo Cliente',
     description: 'Cadastrar cliente',
     color: 'bg-purple-500 hover:bg-purple-600',
-    href: '/clientes/novo'
+    route: '/clientes'
   },
   {
     icon: FileText,
-    label: 'Gerar Orçamento',
-    description: 'Criar proposta',
+    label: 'Gerar Relatório',
+    description: 'Visualizar relatórios',
     color: 'bg-orange-500 hover:bg-orange-600',
-    href: '/orcamentos/novo'
+    route: '/relatorios'
   }
 ];
 
 export const QuickActions: React.FC = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleActionClick = (action: typeof actions[0]) => {
+    navigate(action.route);
+    toast({
+      title: "Navegando...",
+      description: `Redirecionando para ${action.label}`,
+    });
+  };
   return (
     <Card>
       <CardHeader>
@@ -48,10 +60,10 @@ export const QuickActions: React.FC = () => {
         <div className="grid grid-cols-2 gap-3">
           {actions.map((action) => (
             <Button
-              key={action.href}
+              key={action.route}
               variant="ghost"
               className="h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-all duration-200"
-              onClick={() => console.log(`Navigate to ${action.href}`)}
+              onClick={() => handleActionClick(action)}
             >
               <div className={`p-3 rounded-full text-white ${action.color}`}>
                 <action.icon className="w-5 h-5" />
