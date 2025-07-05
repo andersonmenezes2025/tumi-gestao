@@ -15,7 +15,8 @@ import {
   Edit,
   Trash2,
   CheckCircle,
-  DollarSign
+  DollarSign,
+  Settings
 } from 'lucide-react';
 import { 
   Table,
@@ -33,6 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useProducts } from '@/hooks/useProducts';
 import { ProductForm } from '@/components/products/ProductForm';
+import { CategoryManagement } from '@/components/products/CategoryManagement';
 import { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
@@ -41,8 +43,9 @@ const Produtos: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   
-  const { products, categories, loading, createProduct, updateProduct, deleteProduct } = useProducts();
+  const { products, categories, loading, createProduct, updateProduct, deleteProduct, refreshCategories } = useProducts();
 
   const getStatusBadge = (product: Product) => {
     if (!product.active) {
@@ -115,10 +118,16 @@ const Produtos: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Produtos</h1>
           <p className="text-gray-600">Gerencie seu catálogo de produtos</p>
         </div>
-        <Button onClick={() => setShowProductForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Produto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowCategoryManagement(true)}>
+            <Settings className="h-4 w-4 mr-2" />
+            Categorias
+          </Button>
+          <Button onClick={() => setShowProductForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Produto
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -282,6 +291,30 @@ const Produtos: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Category Management Dialog */}
+      {showCategoryManagement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Gerenciar Categorias</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCategoryManagement(false)}
+                >
+                  Fechar
+                </Button>
+              </div>
+              <CategoryManagement
+                categories={categories}
+                onRefresh={refreshCategories}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Product Form Dialog */}
       <ProductForm

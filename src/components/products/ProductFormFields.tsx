@@ -65,32 +65,6 @@ export function ProductFormFields({ formData, setFormData, categories, errors }:
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="price">Preço de Venda *</Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            value={formData.price}
-            onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-            required
-          />
-          {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="cost_price">Preço de Custo</Label>
-          <Input
-            id="cost_price"
-            type="number"
-            step="0.01"
-            value={formData.cost_price || 0}
-            onChange={(e) => setFormData(prev => ({ ...prev, cost_price: parseFloat(e.target.value) || 0 }))}
-          />
-          {errors.cost_price && <p className="text-sm text-red-500">{errors.cost_price}</p>}
-        </div>
-      </div>
 
       <div className="space-y-2">
         <Label htmlFor="unit">Unidade</Label>
@@ -106,6 +80,17 @@ export function ProductFormFields({ formData, setFormData, categories, errors }:
             <SelectItem value="ml">Mililitro</SelectItem>
             <SelectItem value="m">Metro</SelectItem>
             <SelectItem value="cm">Centímetro</SelectItem>
+            <SelectItem value="mm">Milímetro</SelectItem>
+            <SelectItem value="m2">Metro Quadrado</SelectItem>
+            <SelectItem value="m3">Metro Cúbico</SelectItem>
+            <SelectItem value="cx">Caixa</SelectItem>
+            <SelectItem value="pct">Pacote</SelectItem>
+            <SelectItem value="dz">Dúzia</SelectItem>
+            <SelectItem value="par">Par</SelectItem>
+            <SelectItem value="kit">Kit</SelectItem>
+            <SelectItem value="sc">Saco</SelectItem>
+            <SelectItem value="bd">Bandeja</SelectItem>
+            <SelectItem value="gl">Galão</SelectItem>
           </SelectContent>
         </Select>
       </div>
