@@ -2,6 +2,7 @@
 import React from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { FloatingAssistant } from '@/components/ai/DigitalAssistant';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+      <FloatingAssistant />
     </div>
   );
 }

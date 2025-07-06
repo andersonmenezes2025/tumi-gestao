@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,14 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, Calculator } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plus, Trash2, Calculator, User, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useProducts } from '@/hooks/useProducts';
+import { useCustomers } from '@/hooks/useCustomers';
 import { Tables } from '@/integrations/supabase/types';
 
 type Quote = Tables<'quotes'>;
 type Product = Tables<'products'>;
+type Customer = Tables<'customers'>;
 
 interface QuoteItem {
   id?: string;
@@ -32,6 +35,9 @@ interface QuoteFormProps {
 }
 
 export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProps) {
+  const [customerType, setCustomerType] = useState<'existing' | 'new'>('new');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  
   const [formData, setFormData] = useState({
     customer_name: quote?.customer_name || '',
     customer_email: quote?.customer_email || '',
@@ -48,6 +54,29 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
   const { toast } = useToast();
   const { companyId } = useCompany();
   const { products } = useProducts();
+  const { customers } = useCustomers();
+
+  // Update form when customer is selected
+  useEffect(() => {
+    if (customerType === 'existing' && selectedCustomerId) {
+      const customer = customers.find(c => c.id === selectedCustomerId);
+      if (customer) {
+        setFormData(prev => ({
+          ...prev,
+          customer_name: customer.name,
+          customer_email: customer.email || '',
+          customer_phone: customer.phone || ''
+        }));
+      }
+    } else if (customerType === 'new') {
+      setFormData(prev => ({
+        ...prev,
+        customer_name: '',
+        customer_email: '',
+        customer_phone: ''
+      }));
+    }
+  }, [customerType, selectedCustomerId, customers]);
 
   const addItem = () => {
     setItems([...items, { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }]);
@@ -135,6 +164,51 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
               <CardTitle className="text-lg">Informações do Cliente</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Customer Type Selection */}
+              <div className="space-y-3">
+                <Label>Tipo de Cliente</Label>
+                <RadioGroup 
+                  value={customerType} 
+                  onValueChange={(value: 'existing' | 'new') => setCustomerType(value)}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="existing" id="existing" />
+                    <Label htmlFor="existing" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Cliente Existente
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="new" id="new" />
+                    <Label htmlFor="new" className="flex items-center gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      Novo Cliente
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Existing Customer Selection */}
+              {customerType === 'existing' && (
+                <div className="space-y-2">
+                  <Label htmlFor="customer_select">Selecionar Cliente *</Label>
+                  <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Escolha um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name} {customer.email && `(${customer.email})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Customer Data Fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer_name">Nome do Cliente *</Label>
@@ -142,6 +216,7 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
                     id="customer_name"
                     value={formData.customer_name}
                     onChange={(e) => setFormData(prev => ({ ...prev, customer_name: e.target.value }))}
+                    disabled={customerType === 'existing'}
                     required
                   />
                 </div>
@@ -153,6 +228,7 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
                     type="email"
                     value={formData.customer_email}
                     onChange={(e) => setFormData(prev => ({ ...prev, customer_email: e.target.value }))}
+                    disabled={customerType === 'existing'}
                     required
                   />
                 </div>
@@ -165,6 +241,7 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
                     id="customer_phone"
                     value={formData.customer_phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
+                    disabled={customerType === 'existing'}
                   />
                 </div>
                 

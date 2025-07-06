@@ -18,6 +18,8 @@ import Relatorios from "./pages/Relatorios";
 import Automacao from "./pages/Automacao";
 import Agenda from "./pages/Agenda";
 import Orcamentos from "./pages/Orcamentos";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCanceled from "./pages/PaymentCanceled";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -51,6 +53,8 @@ const App = () => (
                   <Route path="/automacao" element={<Automacao />} />
                   <Route path="/agenda" element={<Agenda />} />
                   <Route path="/configuracoes" element={<Configuracoes />} />
+                  <Route path="/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/payment-canceled" element={<PaymentCanceled />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
