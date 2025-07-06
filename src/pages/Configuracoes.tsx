@@ -7,6 +7,7 @@ import { VisualIdentityForm } from '@/components/settings/VisualIdentityForm';
 import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings';
 import { UserSettings } from '@/components/settings/UserSettings';
 import { SystemHealthCheck } from '@/components/admin/SystemHealthCheck';
+import { SystemTester } from '@/components/testing/SystemTester';
 import { 
   Building2, 
   Palette, 
@@ -30,7 +31,7 @@ const Configuracoes = () => {
       </div>
 
       <Tabs defaultValue="company" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Empresa
@@ -54,6 +55,11 @@ const Configuracoes = () => {
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Sistema
+          </TabsTrigger>
+
+          <TabsTrigger value="tests" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Testes
           </TabsTrigger>
         </TabsList>
 
@@ -105,6 +111,20 @@ const Configuracoes = () => {
 
         <TabsContent value="system" className="space-y-6">
           <SystemHealthCheck />
+        </TabsContent>
+
+        <TabsContent value="tests" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Testes do Sistema</CardTitle>
+              <CardDescription>
+                Execute testes automáticos para validar todas as funcionalidades
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SystemTester />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

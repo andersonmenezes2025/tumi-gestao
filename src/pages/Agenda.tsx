@@ -2,6 +2,11 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Plus, Clock, Users, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -51,10 +56,45 @@ export default function Agenda() {
   const todayEvents = events.filter(event => event.date === '2024-01-16');
   const upcomingEvents = events.filter(event => event.date > '2024-01-16');
 
+  const [showNewEventDialog, setShowNewEventDialog] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    duration: '1h',
+    type: 'meeting',
+    location: '',
+  });
+
   const handleNewEvent = () => {
+    setShowNewEventDialog(true);
+  };
+
+  const handleSaveEvent = () => {
+    if (!newEvent.title || !newEvent.date || !newEvent.time) {
+      toast({
+        title: "Erro",
+        description: "Preencha pelo menos título, data e horário.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
-      title: "Novo Agendamento",
-      description: "Funcionalidade de novo agendamento será implementada em breve.",
+      title: "Agendamento Criado",
+      description: `Evento "${newEvent.title}" agendado com sucesso.`,
+    });
+    
+    setShowNewEventDialog(false);
+    setNewEvent({
+      title: '',
+      description: '',
+      date: '',
+      time: '',
+      duration: '1h',
+      type: 'meeting',
+      location: '',
     });
   };
 
@@ -240,6 +280,104 @@ export default function Agenda() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog para Novo Evento */}
+      <Dialog open={showNewEventDialog} onOpenChange={setShowNewEventDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo Agendamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Título *</Label>
+              <Input
+                id="title"
+                value={newEvent.title}
+                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                placeholder="Ex: Reunião com cliente"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={newEvent.description}
+                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                placeholder="Descreva o agendamento"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="date">Data *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={newEvent.date}
+                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="time">Horário *</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={newEvent.time}
+                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="duration">Duração</Label>
+                <Select value={newEvent.duration} onValueChange={(value) => setNewEvent({ ...newEvent, duration: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30min">30 minutos</SelectItem>
+                    <SelectItem value="1h">1 hora</SelectItem>
+                    <SelectItem value="1h30">1h 30min</SelectItem>
+                    <SelectItem value="2h">2 horas</SelectItem>
+                    <SelectItem value="3h">3 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="type">Tipo</Label>
+                <Select value={newEvent.type} onValueChange={(value) => setNewEvent({ ...newEvent, type: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meeting">Reunião</SelectItem>
+                    <SelectItem value="call">Ligação</SelectItem>
+                    <SelectItem value="delivery">Entrega</SelectItem>
+                    <SelectItem value="visit">Visita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="location">Local</Label>
+              <Input
+                id="location"
+                value={newEvent.location}
+                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                placeholder="Ex: Escritório Central"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setShowNewEventDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveEvent}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

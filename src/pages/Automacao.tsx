@@ -177,7 +177,49 @@ export default function Automacao() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Assistente Digital */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Assistente Digital</h3>
+                  </div>
+                  <Badge variant="default">Disponível</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Assistente inteligente integrado com N8N para automação de tarefas
+                </p>
+                <div className="space-y-2 text-xs text-muted-foreground mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span>Respostas automáticas</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span>Análise de dados</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    <span>Integração N8N</span>
+                  </div>
+                </div>
+                <Button 
+                  className="w-full"  
+                  onClick={() => toast({
+                    title: "Assistente Digital",
+                    description: "Abrindo interface do assistente...",
+                  })}
+                >
+                  Abrir Assistente
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Outros recursos de IA */}
             {aiFeatures.map((feature) => {
               const statusBadge = getAiStatusBadge(feature.status);
               
