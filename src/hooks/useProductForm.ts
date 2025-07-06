@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
@@ -92,6 +92,30 @@ export function useProductForm({ product, companyId, onSubmit, onOpenChange }: U
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Atualizar o formulário quando o produto for alterado
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        price: product.price || 0,
+        cost_price: product.cost_price || 0,
+        stock_quantity: product.stock_quantity || 0,
+        min_stock: product.min_stock || 0,
+        max_stock: product.max_stock || null,
+        category_id: product.category_id || '',
+        sku: product.sku || '',
+        barcode: product.barcode || '',
+        unit: product.unit || 'un',
+        active: product.active ?? true,
+        image_url: product.image_url || null,
+        profit_margin_percentage: product.profit_margin_percentage || 30
+      });
+    } else {
+      resetForm();
+    }
+  }, [product]);
 
   const resetForm = (): void => {
     setFormData({

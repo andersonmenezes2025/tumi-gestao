@@ -7,41 +7,123 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
+import { SaleForm } from '@/components/sales/SaleForm';
+import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
+
+type Sale = Tables<'sales'>;
+type Customer = Tables<'customers'>;
 
 export default function Vendas() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showSaleForm, setShowSaleForm] = useState(false);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadingSales, setLoadingSales] = useState(true);
   const { toast } = useToast();
-  const { hasCompany, company, loading } = useCompany();
+  const { hasCompany, company, loading, companyId } = useCompany();
 
   console.log('Vendas - Has Company:', hasCompany, 'Company:', company);
 
-  // Dados mock para teste
-  const mockSales = [
-    {
-      id: '1',
-      saleNumber: 'VD000001',
-      customerName: 'João Silva',
-      totalAmount: 1250.00,
-      status: 'completed',
-      paymentStatus: 'paid',
-      createdAt: '2024-01-15',
-    },
-    {
-      id: '2',
-      saleNumber: 'VD000002',
-      customerName: 'Maria Santos',
-      totalAmount: 850.00,
-      status: 'pending',
-      paymentStatus: 'pending',
-      createdAt: '2024-01-16',
-    },
-  ];
+  const fetchSales = async () => {
+    if (!companyId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('sales')
+        .select(`
+          *,
+          customers (
+            name
+          )
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSales(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar vendas",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingSales(false);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    if (!companyId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar clientes:', error);
+    }
+  };
+
+  React.useEffect(() => {
+    if (companyId) {
+      fetchSales();
+      fetchCustomers();
+    }
+  }, [companyId]);
 
   const handleNewSale = () => {
+    setShowSaleForm(true);
+  };
+
+  const handleViewSale = (sale: Sale) => {
     toast({
-      title: "Nova Venda",
-      description: "Funcionalidade de nova venda será implementada em breve.",
+      title: "Visualizar Venda",
+      description: `Visualizando venda ${sale.sale_number}`,
     });
+  };
+
+  const handleEditSale = (sale: Sale) => {
+    toast({
+      title: "Editar Venda",
+      description: `Editando venda ${sale.sale_number}`,
+    });
+  };
+
+  const handleDeleteSale = async (sale: Sale) => {
+    if (window.confirm(`Tem certeza que deseja excluir a venda ${sale.sale_number}?`)) {
+      try {
+        const { error } = await supabase
+          .from('sales')
+          .delete()
+          .eq('id', sale.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Venda excluída com sucesso!",
+        });
+        
+        fetchSales();
+      } catch (error: any) {
+        toast({
+          title: "Erro ao excluir venda",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const getCustomerName = (customerId: string | null) => {
+    if (!customerId) return 'Cliente não informado';
+    const customer = customers.find(c => c.id === customerId);
+    return customer?.name || 'Cliente não encontrado';
   };
 
   const getStatusBadge = (status: string) => {
@@ -62,7 +144,7 @@ export default function Vendas() {
     return statusMap[status as keyof typeof statusMap] || { label: status, variant: 'outline' as const };
   };
 
-  if (loading) {
+  if (loading || loadingSales) {
     return (
       <div className="container mx-auto py-6 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -112,8 +194,10 @@ export default function Vendas() {
             <CardTitle className="text-sm font-medium">Total de Vendas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 2.100,00</div>
-            <p className="text-xs text-muted-foreground">+20% em relação ao mês anterior</p>
+            <div className="text-2xl font-bold">
+              R$ {sales.reduce((total, sale) => total + sale.total_amount, 0).toFixed(2).replace('.', ',')}
+            </div>
+            <p className="text-xs text-muted-foreground">Total de vendas realizadas</p>
           </CardContent>
         </Card>
         <Card>
@@ -121,8 +205,8 @@ export default function Vendas() {
             <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">Vendas realizadas hoje</p>
+            <div className="text-2xl font-bold">{sales.length}</div>
+            <p className="text-xs text-muted-foreground">Total de vendas</p>
           </CardContent>
         </Card>
         <Card>
@@ -130,7 +214,9 @@ export default function Vendas() {
             <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1</div>
+            <div className="text-2xl font-bold">
+              {sales.filter(s => s.status === 'pending').length}
+            </div>
             <p className="text-xs text-muted-foreground">Vendas pendentes</p>
           </CardContent>
         </Card>
@@ -139,7 +225,9 @@ export default function Vendas() {
             <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 1.050,00</div>
+            <div className="text-2xl font-bold">
+              R$ {sales.length > 0 ? (sales.reduce((total, sale) => total + sale.total_amount, 0) / sales.length).toFixed(2).replace('.', ',') : '0,00'}
+            </div>
             <p className="text-xs text-muted-foreground">Valor médio por venda</p>
           </CardContent>
         </Card>
@@ -181,31 +269,46 @@ export default function Vendas() {
                 </tr>
               </thead>
               <tbody>
-                {mockSales.map((sale) => {
-                  const statusBadge = getStatusBadge(sale.status);
-                  const paymentBadge = getPaymentStatusBadge(sale.paymentStatus);
+                {sales.map((sale) => {
+                  const statusBadge = getStatusBadge(sale.status || 'pending');
+                  const paymentBadge = getPaymentStatusBadge(sale.payment_status || 'pending');
                   
                   return (
                     <tr key={sale.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-medium">{sale.saleNumber}</td>
-                      <td className="p-2">{sale.customerName}</td>
-                      <td className="p-2">R$ {sale.totalAmount.toFixed(2).replace('.', ',')}</td>
+                      <td className="p-2 font-medium">{sale.sale_number}</td>
+                      <td className="p-2">{getCustomerName(sale.customer_id)}</td>
+                      <td className="p-2">R$ {sale.total_amount.toFixed(2).replace('.', ',')}</td>
                       <td className="p-2">
                         <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
                       </td>
                       <td className="p-2">
                         <Badge variant={paymentBadge.variant}>{paymentBadge.label}</Badge>
                       </td>
-                      <td className="p-2">{new Date(sale.createdAt).toLocaleDateString('pt-BR')}</td>
+                      <td className="p-2">{new Date(sale.created_at || '').toLocaleDateString('pt-BR')}</td>
                       <td className="p-2">
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleViewSale(sale)}
+                            title="Visualizar venda"
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleEditSale(sale)}
+                            title="Editar venda"
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleDeleteSale(sale)}
+                            title="Excluir venda"
+                          >
                             <Trash className="h-4 w-4" />
                           </Button>
                         </div>
@@ -213,11 +316,25 @@ export default function Vendas() {
                     </tr>
                   );
                 })}
+                {sales.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                      Nenhuma venda encontrada
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
+      {/* Sale Form Dialog */}
+      <SaleForm
+        open={showSaleForm}
+        onOpenChange={setShowSaleForm}
+        onSuccess={fetchSales}
+      />
     </div>
   );
 }
