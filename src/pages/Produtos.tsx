@@ -33,8 +33,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useProducts } from '@/hooks/useProducts';
+import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/products/ProductForm';
 import { CategoryManagement } from '@/components/products/CategoryManagement';
+import { ProductPurchaseForm } from '@/components/products/ProductPurchaseForm';
+import { UnitManagement } from '@/components/products/UnitManagement';
 import { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
@@ -44,8 +47,10 @@ const Produtos: React.FC = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  const [showPurchaseForm, setShowPurchaseForm] = useState(false);
   
-  const { products, categories, loading, createProduct, updateProduct, deleteProduct, refreshCategories } = useProducts();
+  const { products, categories, loading, createProduct, updateProduct, deleteProduct, refreshCategories, refreshProducts } = useProducts();
+  const { toast } = useToast();
 
   const getStatusBadge = (product: Product) => {
     if (!product.active) {
@@ -122,6 +127,10 @@ const Produtos: React.FC = () => {
           <Button variant="outline" onClick={() => setShowCategoryManagement(true)}>
             <Settings className="h-4 w-4 mr-2" />
             Categorias
+          </Button>
+          <Button variant="outline" onClick={() => setShowPurchaseForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Comprar Produtos
           </Button>
           <Button onClick={() => setShowProductForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -292,13 +301,13 @@ const Produtos: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Category Management Dialog */}
+      {/* Category and Unit Management Dialog */}
       {showCategoryManagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Gerenciar Categorias</h2>
+                <h2 className="text-xl font-bold">Gerenciar Categorias e Unidades</h2>
                 <Button
                   variant="outline"
                   size="sm"
@@ -307,14 +316,35 @@ const Produtos: React.FC = () => {
                   Fechar
                 </Button>
               </div>
-              <CategoryManagement
-                categories={categories}
-                onRefresh={refreshCategories}
-              />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <CategoryManagement
+                    categories={categories}
+                    onRefresh={refreshCategories}
+                  />
+                </div>
+                <div>
+                  <UnitManagement />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Product Purchase Form */}
+      <ProductPurchaseForm
+        open={showPurchaseForm}
+        onOpenChange={setShowPurchaseForm}
+        onSuccess={() => {
+          refreshProducts();
+          toast({
+            title: "Compra registrada!",
+            description: "Estoque atualizado com sucesso.",
+          });
+        }}
+      />
 
       {/* Product Form Dialog */}
       <ProductForm
