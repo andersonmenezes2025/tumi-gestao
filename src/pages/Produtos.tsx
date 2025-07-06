@@ -16,7 +16,8 @@ import {
   Trash2,
   CheckCircle,
   DollarSign,
-  Settings
+  Settings,
+  Building2
 } from 'lucide-react';
 import { 
   Table,
@@ -38,6 +39,7 @@ import { ProductForm } from '@/components/products/ProductForm';
 import { CategoryManagement } from '@/components/products/CategoryManagement';
 import { ProductPurchaseForm } from '@/components/products/ProductPurchaseForm';
 import { UnitManagement } from '@/components/products/UnitManagement';
+import { SupplierManagement } from '@/components/suppliers/SupplierManagement';
 import { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
@@ -47,6 +49,7 @@ const Produtos: React.FC = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  const [showSupplierManagement, setShowSupplierManagement] = useState(false);
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   
@@ -144,6 +147,10 @@ const Produtos: React.FC = () => {
           <p className="text-gray-600">Gerencie seu catálogo de produtos</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowSupplierManagement(true)}>
+            <Building2 className="h-4 w-4 mr-2" />
+            Fornecedores
+          </Button>
           <Button variant="outline" onClick={() => setShowCategoryManagement(true)}>
             <Settings className="h-4 w-4 mr-2" />
             Categorias
@@ -320,6 +327,28 @@ const Produtos: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Supplier Management Dialog */}
+      {showSupplierManagement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Gerenciar Fornecedores</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSupplierManagement(false)}
+                >
+                  Fechar
+                </Button>
+              </div>
+              
+              <SupplierManagement />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Category and Unit Management Dialog */}
       {showCategoryManagement && (

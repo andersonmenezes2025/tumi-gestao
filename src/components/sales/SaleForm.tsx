@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Search } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plus, Trash2, Search, User, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
@@ -37,7 +38,14 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [customerType, setCustomerType] = useState<'existing' | 'new' | 'none'>('none');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    document: ''
+  });
   const [paymentMethod, setPaymentMethod] = useState<string>('money');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);

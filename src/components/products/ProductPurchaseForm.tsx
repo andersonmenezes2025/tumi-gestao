@@ -5,12 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
+import { useSuppliers } from '@/hooks/useSuppliers';
 import { Tables } from '@/integrations/supabase/types';
 
 type Product = Tables<'products'>;
+type Supplier = Tables<'suppliers'>;
 
 interface ProductPurchaseFormProps {
   open: boolean;
@@ -23,13 +27,18 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [unitCost, setUnitCost] = useState<number>(0);
-  const [supplierName, setSupplierName] = useState<string>('');
+  const [supplierType, setSupplierType] = useState<'existing' | 'new'>('existing');
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
+  const [newSupplierName, setNewSupplierName] = useState<string>('');
+  const [profitMarginType, setProfitMarginType] = useState<'percentage' | 'fixed'>('percentage');
+  const [profitMarginValue, setProfitMarginValue] = useState<number>(30);
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   
   const { toast } = useToast();
   const { companyId } = useCompany();
+  const { suppliers } = useSuppliers();
 
   useEffect(() => {
     if (open && companyId) {
@@ -69,13 +78,25 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
     setLoading(true);
     try {
       const totalCost = quantity * unitCost;
+      const supplierName = supplierType === 'existing' ? 
+        suppliers.find(s => s.id === selectedSupplierId)?.name || null :
+        newSupplierName || null;
+
+      // Calculate new selling price based on profit margin
+      let newSellingPrice = unitCost;
+      if (profitMarginType === 'percentage') {
+        newSellingPrice = unitCost * (1 + profitMarginValue / 100);
+      } else {
+        newSellingPrice = unitCost + profitMarginValue;
+      }
 
       const { error } = await supabase
         .from('product_purchases')
         .insert([{
           company_id: companyId,
           product_id: selectedProduct,
-          supplier_name: supplierName || null,
+          supplier_id: supplierType === 'existing' ? selectedSupplierId || null : null,
+          supplier_name: supplierName,
           quantity,
           unit_cost: unitCost,
           total_cost: totalCost,
@@ -84,9 +105,21 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
 
       if (error) throw error;
 
+      // Update product cost price and selling price
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          cost_price: unitCost,
+          price: newSellingPrice,
+          profit_margin_percentage: profitMarginType === 'percentage' ? profitMarginValue : null
+        })
+        .eq('id', selectedProduct);
+
+      if (updateError) throw updateError;
+
       toast({
         title: "Compra registrada com sucesso!",
-        description: "O estoque do produto foi atualizado automaticamente.",
+        description: "O estoque e preços do produto foram atualizados automaticamente.",
       });
 
       onSuccess();
@@ -107,7 +140,11 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
     setSelectedProduct('');
     setQuantity(1);
     setUnitCost(0);
-    setSupplierName('');
+    setSupplierType('existing');
+    setSelectedSupplierId('');
+    setNewSupplierName('');
+    setProfitMarginType('percentage');
+    setProfitMarginValue(30);
     setNotes('');
   };
 
@@ -176,15 +213,108 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="supplier">Fornecedor</Label>
-            <Input
-              id="supplier"
-              value={supplierName}
-              onChange={(e) => setSupplierName(e.target.value)}
-              placeholder="Nome do fornecedor"
-            />
-          </div>
+          {/* Supplier Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Fornecedor</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup 
+                value={supplierType} 
+                onValueChange={(value: 'existing' | 'new') => setSupplierType(value)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="existing" id="existing-supplier" />
+                  <Label htmlFor="existing-supplier">Fornecedor Existente</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="new" id="new-supplier" />
+                  <Label htmlFor="new-supplier">Novo Fornecedor</Label>
+                </div>
+              </RadioGroup>
+
+              {supplierType === 'existing' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-select">Selecionar Fornecedor</Label>
+                  <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Escolha um fornecedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="new-supplier-name">Nome do Novo Fornecedor</Label>
+                  <Input
+                    id="new-supplier-name"
+                    value={newSupplierName}
+                    onChange={(e) => setNewSupplierName(e.target.value)}
+                    placeholder="Nome do fornecedor"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Profit Margin */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Margem de Lucro</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup 
+                value={profitMarginType} 
+                onValueChange={(value: 'percentage' | 'fixed') => setProfitMarginType(value)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="percentage" id="margin-percentage" />
+                  <Label htmlFor="margin-percentage">Percentual (%)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="fixed" id="margin-fixed" />
+                  <Label htmlFor="margin-fixed">Valor Fixo (R$)</Label>
+                </div>
+              </RadioGroup>
+
+              <div className="space-y-2">
+                <Label htmlFor="profit-margin">
+                  {profitMarginType === 'percentage' ? 'Margem de Lucro (%)' : 'Valor da Margem (R$)'}
+                </Label>
+                <Input
+                  id="profit-margin"
+                  type="number"
+                  min="0"
+                  step={profitMarginType === 'percentage' ? '0.1' : '0.01'}
+                  value={profitMarginValue}
+                  onChange={(e) => setProfitMarginValue(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+
+              {unitCost > 0 && profitMarginValue > 0 && (
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="text-sm space-y-1">
+                    <p><strong>Cálculo do Preço de Venda:</strong></p>
+                    <p>Custo: R$ {unitCost.toFixed(2).replace('.', ',')}</p>
+                    <p>Margem: {profitMarginType === 'percentage' ? `${profitMarginValue}%` : `R$ ${profitMarginValue.toFixed(2).replace('.', ',')}`}</p>
+                    <p><strong>Novo Preço de Venda: R$ {
+                      profitMarginType === 'percentage' 
+                        ? (unitCost * (1 + profitMarginValue / 100)).toFixed(2).replace('.', ',')
+                        : (unitCost + profitMarginValue).toFixed(2).replace('.', ',')
+                    }</strong></p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>
