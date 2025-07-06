@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, 
   Search, 
@@ -17,7 +18,10 @@ import {
   CheckCircle,
   DollarSign,
   Settings,
-  Building2
+  Building2,
+  Tag,
+  Ruler,
+  ShoppingCart
 } from 'lucide-react';
 import { 
   Table,
@@ -146,256 +150,254 @@ const Produtos: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Produtos</h1>
           <p className="text-gray-600">Gerencie seu catálogo de produtos</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowSupplierManagement(true)}>
-            <Building2 className="h-4 w-4 mr-2" />
+      </div>
+
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="catalogo" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="catalogo" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Catálogo
+          </TabsTrigger>
+          
+          <TabsTrigger value="fornecedores" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
             Fornecedores
-          </Button>
-          <Button variant="outline" onClick={() => setShowCategoryManagement(true)}>
-            <Settings className="h-4 w-4 mr-2" />
+          </TabsTrigger>
+          
+          <TabsTrigger value="categorias" className="flex items-center gap-2">
+            <Tag className="h-4 w-4" />
             Categorias
-          </Button>
-          <Button variant="outline" onClick={() => setShowPurchaseForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Comprar Produtos
-          </Button>
-          <Button onClick={() => setShowProductForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Produto
-          </Button>
-        </div>
-      </div>
+          </TabsTrigger>
+          
+          <TabsTrigger value="compras" className="flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4" />
+            Compras
+          </TabsTrigger>
+          
+          <TabsTrigger value="unidades" className="flex items-center gap-2">
+            <Ruler className="h-4 w-4" />
+            Unidades
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
-            <p className="text-xs text-muted-foreground">produtos cadastrados</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Produtos Ativos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{products.filter(p => p.active).length}</div>
-            <p className="text-xs text-muted-foreground">produtos ativos</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estoque Baixo</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {products.filter(p => p.stock_quantity !== null && p.min_stock !== null && p.stock_quantity <= p.min_stock).length}
+        {/* Catálogo Tab */}
+        <TabsContent value="catalogo" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Catálogo de Produtos</h2>
+              <p className="text-muted-foreground">Gerencie seus produtos cadastrados</p>
             </div>
-            <p className="text-xs text-muted-foreground">produtos com estoque baixo</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor do Estoque</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {products.reduce((total, product) => {
-                const stockValue = (product.stock_quantity || 0) * (product.cost_price || 0);
-                return total + stockValue;
-              }, 0).toFixed(2).replace('.', ',')}
-            </div>
-            <p className="text-xs text-muted-foreground">valor total em estoque</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar produtos..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 mr-2" />
-          Filtros
-        </Button>
-      </div>
-
-      {/* Products List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Produtos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium">Produto</th>
-                  <th className="text-left py-3 px-4 font-medium">SKU</th>
-                  <th className="text-left py-3 px-4 font-medium">Preço</th>
-                  <th className="text-left py-3 px-4 font-medium">Estoque</th>
-                  <th className="text-left py-3 px-4 font-medium">Status</th>
-                  <th className="text-left py-3 px-4 font-medium">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gray-200 rounded-md flex items-center justify-center">
-                          <Package className="h-5 w-5 text-gray-500" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{product.name}</div>
-                          <div className="text-sm text-gray-500">{product.description}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">{product.sku || '-'}</td>
-                    <td className="py-3 px-4 font-medium">
-                      R$ {product.price.toFixed(2).replace('.', ',')}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-1">
-                        <span className={`${
-                          product.stock_quantity !== null && product.min_stock !== null && product.stock_quantity <= product.min_stock
-                            ? 'text-red-600 font-medium'
-                            : 'text-gray-600'
-                        }`}>
-                          {product.stock_quantity || 0}
-                        </span>
-                        <span className="text-gray-400">un</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {product.active ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingProduct(product);
-                            setShowProductForm(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredProducts.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">
-                      Nenhum produto encontrado
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <Button onClick={() => setShowProductForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Produto
+            </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Supplier Management Dialog */}
-      {showSupplierManagement && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Gerenciar Fornecedores</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSupplierManagement(false)}
-                >
-                  Fechar
-                </Button>
-              </div>
-              
-              <SupplierManagement />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Category and Unit Management Dialog */}
-      {showCategoryManagement && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Gerenciar Categorias e Unidades</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCategoryManagement(false)}
-                >
-                  Fechar
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <CategoryManagement
-                    categories={categories}
-                    onRefresh={refreshCategories}
-                  />
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{products.length}</div>
+                <p className="text-xs text-muted-foreground">produtos cadastrados</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Produtos Ativos</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{products.filter(p => p.active).length}</div>
+                <p className="text-xs text-muted-foreground">produtos ativos</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Estoque Baixo</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {products.filter(p => p.stock_quantity !== null && p.min_stock !== null && p.stock_quantity <= p.min_stock).length}
                 </div>
-                <div>
-                  <UnitManagement />
+                <p className="text-xs text-muted-foreground">produtos com estoque baixo</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Valor do Estoque</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  R$ {products.reduce((total, product) => {
+                    const stockValue = (product.stock_quantity || 0) * (product.cost_price || 0);
+                    return total + stockValue;
+                  }, 0).toFixed(2).replace('.', ',')}
                 </div>
-              </div>
-            </div>
+                <p className="text-xs text-muted-foreground">valor total em estoque</p>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      )}
 
-      {/* Product Purchase Form */}
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar produtos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+            </Button>
+          </div>
+
+          {/* Products List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de Produtos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-medium">Produto</th>
+                      <th className="text-left py-3 px-4 font-medium">SKU</th>
+                      <th className="text-left py-3 px-4 font-medium">Preço</th>
+                      <th className="text-left py-3 px-4 font-medium">Estoque</th>
+                      <th className="text-left py-3 px-4 font-medium">Status</th>
+                      <th className="text-left py-3 px-4 font-medium">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product) => (
+                      <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gray-200 rounded-md flex items-center justify-center">
+                              <Package className="h-5 w-5 text-gray-500" />
+                            </div>
+                            <div>
+                              <div className="font-medium">{product.name}</div>
+                              <div className="text-sm text-gray-500">{product.description}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-gray-600">{product.sku || '-'}</td>
+                        <td className="py-3 px-4 font-medium">
+                          R$ {product.price.toFixed(2).replace('.', ',')}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-1">
+                            <span className={`${
+                              product.stock_quantity !== null && product.min_stock !== null && product.stock_quantity <= product.min_stock
+                                ? 'text-red-600 font-medium'
+                                : 'text-gray-600'
+                            }`}>
+                              {product.stock_quantity || 0}
+                            </span>
+                            <span className="text-gray-400">un</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            product.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {product.active ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditProduct(product)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteProduct(product)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredProducts.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-gray-500">
+                          Nenhum produto encontrado
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Fornecedores Tab */}
+        <TabsContent value="fornecedores" className="space-y-6">
+          <SupplierManagement />
+        </TabsContent>
+
+        {/* Categorias Tab */}
+        <TabsContent value="categorias" className="space-y-6">
+          <CategoryManagement categories={categories} onRefresh={refreshCategories} />
+        </TabsContent>
+
+        {/* Compras Tab */}
+        <TabsContent value="compras" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gestão de Compras</CardTitle>
+              <Button onClick={() => setShowPurchaseForm(true)} className="ml-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Compra
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Registre compras de produtos para atualizar o estoque automaticamente.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Unidades Tab */}
+        <TabsContent value="unidades" className="space-y-6">
+          <UnitManagement />
+        </TabsContent>
+      </Tabs>
+
+      {/* Forms and Dialogs */}
       <ProductPurchaseForm
         open={showPurchaseForm}
         onOpenChange={setShowPurchaseForm}
         onSuccess={() => {
           refreshProducts();
-          toast({
-            title: "Compra registrada!",
-            description: "Estoque atualizado com sucesso.",
-          });
+          toast({ title: "Compra registrada!", description: "Estoque atualizado com sucesso." });
         }}
       />
 
-      {/* Product Form Dialog */}
       <ProductForm
         open={showProductForm}
         onOpenChange={(open) => {
