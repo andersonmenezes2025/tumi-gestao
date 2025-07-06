@@ -2,14 +2,33 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Calendar, BarChart, TrendingUp, DollarSign, Users } from 'lucide-react';
+import { Download, Calendar, BarChart, TrendingUp, DollarSign, Users, FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
+import { useReports } from '@/hooks/useReports';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function Relatorios() {
   const { toast } = useToast();
   const { hasCompany, company } = useCompany();
+  const { 
+    loading, 
+    generateSalesReport, 
+    generateFinancialReport, 
+    generateCustomersReport, 
+    generateProductsReport 
+  } = useReports();
+
+  const getReportGenerator = (reportId: string) => {
+    switch (reportId) {
+      case 'sales': return generateSalesReport;
+      case 'financial': return generateFinancialReport;
+      case 'customers': return generateCustomersReport;
+      case 'products': return generateProductsReport;
+      default: return () => {};
+    }
+  };
 
   const reportTypes = [
     {
@@ -148,18 +167,27 @@ export default function Relatorios() {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={() => handleGenerateReport(report.id, report.title)}
-                    disabled={report.status !== 'available'}
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Gerar Relatório
-                  </Button>
-                  <Button variant="outline" className="gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Agendar
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        disabled={report.status !== 'available' || loading}
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        {loading ? 'Gerando...' : 'Gerar Relatório'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => getReportGenerator(report.id)('pdf')}>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => getReportGenerator(report.id)('excel')}>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Excel
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
