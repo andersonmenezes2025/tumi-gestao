@@ -17,6 +17,7 @@ import Vendas from "./pages/Vendas";
 import Relatorios from "./pages/Relatorios";
 import Automacao from "./pages/Automacao";
 import Agenda from "./pages/Agenda";
+import Orcamentos from "./pages/Orcamentos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -43,6 +44,7 @@ const App = () => (
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/produtos" element={<Produtos />} />
                   <Route path="/vendas" element={<Vendas />} />
+                  <Route path="/orcamentos" element={<Orcamentos />} />
                   <Route path="/clientes" element={<Clientes />} />
                   <Route path="/financeiro" element={<Financeiro />} />
                   <Route path="/relatorios" element={<Relatorios />} />
