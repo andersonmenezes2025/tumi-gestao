@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,8 @@ import Agenda from "./pages/Agenda";
 import Orcamentos from "./pages/Orcamentos";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
+import PublicQuote from "./pages/PublicQuote";
+import OnlineQuotes from "./pages/OnlineQuotes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -40,25 +41,34 @@ const App = () => (
         <Sonner />
         <AuthProvider>
           <BrowserRouter>
-            <ProtectedRoute>
-              <AppLayout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/produtos" element={<Produtos />} />
-                  <Route path="/vendas" element={<Vendas />} />
-                  <Route path="/orcamentos" element={<Orcamentos />} />
-                  <Route path="/clientes" element={<Clientes />} />
-                  <Route path="/financeiro" element={<Financeiro />} />
-                  <Route path="/relatorios" element={<Relatorios />} />
-                  <Route path="/automacao" element={<Automacao />} />
-                  <Route path="/agenda" element={<Agenda />} />
-                  <Route path="/configuracoes" element={<Configuracoes />} />
-                  <Route path="/payment-success" element={<PaymentSuccess />} />
-                  <Route path="/payment-canceled" element={<PaymentCanceled />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AppLayout>
-            </ProtectedRoute>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/orcamento/:companyId" element={<PublicQuote />} />
+              
+              {/* Protected routes */}
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/produtos" element={<Produtos />} />
+                      <Route path="/vendas" element={<Vendas />} />
+                      <Route path="/orcamentos" element={<Orcamentos />} />
+                      <Route path="/orcamentos/online" element={<OnlineQuotes />} />
+                      <Route path="/clientes" element={<Clientes />} />
+                      <Route path="/financeiro" element={<Financeiro />} />
+                      <Route path="/relatorios" element={<Relatorios />} />
+                      <Route path="/automacao" element={<Automacao />} />
+                      <Route path="/agenda" element={<Agenda />} />
+                      <Route path="/configuracoes" element={<Configuracoes />} />
+                      <Route path="/payment-success" element={<PaymentSuccess />} />
+                      <Route path="/payment-canceled" element={<PaymentCanceled />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+            </Routes>
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>
