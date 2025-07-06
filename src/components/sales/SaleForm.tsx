@@ -160,18 +160,39 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
 
     setLoading(true);
     try {
-      // Gerar número da venda
+      let customerId = selectedCustomer;
+      
+      // Create new customer if needed
+      if (customerType === 'new' && newCustomer.name) {
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .insert([{
+            company_id: companyId,
+            name: newCustomer.name,
+            email: newCustomer.email || null,
+            phone: newCustomer.phone || null,
+            document: newCustomer.document || null,
+            active: true
+          }])
+          .select()
+          .single();
+
+        if (customerError) throw customerError;
+        customerId = customerData.id;
+      }
+
+      // Generate sale number
       const { data: saleNumber, error: numberError } = await supabase
         .rpc('generate_sale_number', { company_uuid: companyId });
 
       if (numberError) throw numberError;
 
-      // Criar venda
+      // Create sale
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert([{
           company_id: companyId,
-          customer_id: selectedCustomer || null,
+          customer_id: customerId || null,
           sale_number: saleNumber,
           total_amount: getTotalAmount(),
           payment_method: paymentMethod,
@@ -184,24 +205,22 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
 
       if (saleError) throw saleError;
 
-      // Criar itens da venda
-      const saleItemsData = saleItems.map(item => ({
-        sale_id: saleData.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount_percentage: item.discount_percentage,
-        total_price: item.total_price
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('sale_items')
-        .insert(saleItemsData);
-
-      if (itemsError) throw itemsError;
-
-      // Atualizar estoque dos produtos
+      // Create sale items and update stock
       for (const item of saleItems) {
+        const { error: itemError } = await supabase
+          .from('sale_items')
+          .insert({
+            sale_id: saleData.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_percentage: item.discount_percentage,
+            total_price: item.total_price
+          });
+
+        if (itemError) throw itemError;
+
+        // Update product stock
         const product = products.find(p => p.id === item.product_id);
         if (product && product.stock_quantity !== null) {
           const newStock = Math.max(0, product.stock_quantity - item.quantity);
@@ -236,7 +255,9 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
 
   const resetForm = () => {
     setSaleItems([]);
+    setCustomerType('none');
     setSelectedCustomer('');
+    setNewCustomer({ name: '', email: '', phone: '', document: '' });
     setPaymentMethod('money');
     setNotes('');
     setSearchProduct('');
@@ -250,23 +271,97 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Customer Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Cliente</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup 
+                value={customerType} 
+                onValueChange={(value: 'existing' | 'new' | 'none') => setCustomerType(value)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="none" id="no-customer" />
+                  <Label htmlFor="no-customer">Sem Cliente</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="existing" id="existing-customer" />
+                  <Label htmlFor="existing-customer" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Cliente Existente
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="new" id="new-customer" />
+                  <Label htmlFor="new-customer" className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Novo Cliente
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {customerType === 'existing' && (
+                <div className="space-y-2">
+                  <Label htmlFor="customer">Cliente</Label>
+                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {customerType === 'new' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-customer-name">Nome *</Label>
+                    <Input
+                      id="new-customer-name"
+                      value={newCustomer.name}
+                      onChange={(e) => setNewCustomer(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-customer-email">Email</Label>
+                    <Input
+                      id="new-customer-email"
+                      type="email"
+                      value={newCustomer.email}
+                      onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-customer-phone">Telefone</Label>
+                    <Input
+                      id="new-customer-phone"
+                      value={newCustomer.phone}
+                      onChange={(e) => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-customer-document">CPF/CNPJ</Label>
+                    <Input
+                      id="new-customer-document"
+                      value={newCustomer.document}
+                      onChange={(e) => setNewCustomer(prev => ({ ...prev, document: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer">Cliente</Label>
-              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="payment">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
