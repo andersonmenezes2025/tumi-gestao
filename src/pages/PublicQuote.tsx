@@ -30,7 +30,12 @@ export default function PublicQuote() {
   }, [companyId]);
 
   const fetchCompany = async () => {
-    if (!companyId) return;
+    if (!companyId) {
+      console.log('PublicQuote: companyId não fornecido');
+      return;
+    }
+    
+    console.log('PublicQuote: Buscando empresa com ID:', companyId);
     
     try {
       const { data, error } = await supabase
@@ -39,12 +44,25 @@ export default function PublicQuote() {
         .eq('id', companyId)
         .single();
 
-      if (error) throw error;
+      console.log('PublicQuote: Resultado da busca:', { data, error });
+
+      if (error) {
+        console.error('PublicQuote: Erro ao buscar empresa:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.error('PublicQuote: Empresa não encontrada para ID:', companyId);
+        throw new Error('Empresa não encontrada');
+      }
+      
+      console.log('PublicQuote: Empresa encontrada:', data);
       setCompany(data);
     } catch (error: any) {
+      console.error('PublicQuote: Erro na fetchCompany:', error);
       toast({
         title: "Erro ao carregar empresa",
-        description: "Empresa não encontrada.",
+        description: `Empresa não encontrada. ID: ${companyId}`,
         variant: "destructive",
       });
     } finally {

@@ -8,23 +8,13 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useCompany } from '@/hooks/useCompany';
-import { useTestData } from '@/hooks/useTestData';
-import { Loader2, TestTube, Plus, Database, Package, Users, ShoppingCart, DollarSign } from 'lucide-react';
+import { Loader2, Plus, Database, Package, Users, ShoppingCart, DollarSign } from 'lucide-react';
 
 export default function Dashboard() {
   const { stats, loading: statsLoading } = useDashboard();
   const { hasCompany, company, loading: companyLoading, error } = useCompany();
-  const { createCompleteTestData, createTestCompany } = useTestData();
 
   const loading = companyLoading || statsLoading;
-
-  const handleCreateTestData = async () => {
-    await createCompleteTestData();
-  };
-
-  const handleCreateTestCompany = async () => {
-    await createTestCompany();
-  };
 
   console.log('Dashboard - Has Company:', hasCompany, 'Company:', company);
 
@@ -48,10 +38,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={handleCreateTestCompany} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Criar Empresa de Teste
-              </Button>
               <Button variant="outline" className="gap-2">
                 <Database className="h-4 w-4" />
                 Entrar em Empresa Existente
@@ -76,12 +62,6 @@ export default function Dashboard() {
           <p className="text-muted-foreground">
             Visão geral do seu negócio - {company?.name || 'Sua Empresa'}
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={handleCreateTestData} variant="outline" className="gap-2">
-            <TestTube className="h-4 w-4" />
-            Criar Dados de Teste
-          </Button>
         </div>
       </div>
 
