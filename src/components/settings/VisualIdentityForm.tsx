@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useCompany } from '@/hooks/useCompany';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Upload, X } from 'lucide-react';
 
 const visualIdentitySchema = z.object({
@@ -24,6 +25,7 @@ export function VisualIdentityForm() {
   const { updateCompany, isUpdating } = useCompanySettings();
   const { toast } = useToast();
   const [logoPreview, setLogoPreview] = useState<string | null>(company?.logo_url || null);
+  const [uploading, setUploading] = useState(false);
 
   const {
     register,
@@ -70,6 +72,67 @@ export function VisualIdentityForm() {
     setLogoPreview(null);
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !company) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, selecione um arquivo de imagem.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Erro',
+        description: 'O arquivo deve ter no máximo 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Create file path with user ID and company ID for security
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${company.creator_id}/${company.id}/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('company-logos')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-logos')
+        .getPublicUrl(filePath);
+
+      setValue('logo_url', publicUrl);
+      setLogoPreview(publicUrl);
+
+      toast({
+        title: 'Sucesso',
+        description: 'Logo enviado com sucesso!',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao enviar logo',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-4">
@@ -103,6 +166,41 @@ export function VisualIdentityForm() {
               {errors.logo_url && (
                 <p className="text-sm text-red-500">{errors.logo_url.message}</p>
               )}
+            </div>
+
+            <div className="text-center text-sm text-muted-foreground my-2">
+              ou
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="logo_upload">Upload de Arquivo</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="logo_upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={uploading}
+                  onClick={() => document.getElementById('logo_upload')?.click()}
+                  className="gap-2"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {uploading ? 'Enviando...' : 'Selecionar'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Aceita PNG, JPG, JPEG. Máximo 5MB.
+              </p>
             </div>
 
             {logoPreview && (
