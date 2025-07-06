@@ -132,7 +132,7 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => window.location.href = '/produtos?filter=low-stock'}>
               Ver Produtos com Estoque Baixo
             </Button>
           </CardContent>

@@ -48,9 +48,19 @@ const Produtos: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   
   const { products, categories, loading, createProduct, updateProduct, deleteProduct, refreshCategories, refreshProducts } = useProducts();
   const { toast } = useToast();
+
+  // Check URL params for filter
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const filter = urlParams.get('filter');
+    if (filter === 'low-stock') {
+      setActiveFilter('low-stock');
+    }
+  }, []);
 
   const getStatusBadge = (product: Product) => {
     if (!product.active) {
@@ -65,10 +75,20 @@ const Produtos: React.FC = () => {
     return <Badge className="bg-green-500 hover:bg-green-600">Ativo</Badge>;
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const getFilteredProducts = () => {
+    let filtered = products.filter(product =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    if (activeFilter === 'low-stock') {
+      filtered = filtered.filter(p => (p.stock_quantity || 0) <= (p.min_stock || 0));
+    }
+
+    return filtered;
+  };
+
+  const filteredProducts = getFilteredProducts();
 
   const totalProducts = products.length;
   const lowStockProducts = products.filter(p => (p.stock_quantity || 0) <= (p.min_stock || 0)).length;
