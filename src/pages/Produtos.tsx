@@ -42,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProductForm } from '@/components/products/ProductForm';
 import { CategoryManagement } from '@/components/products/CategoryManagement';
 import { ProductPurchaseForm } from '@/components/products/ProductPurchaseForm';
+import { ProductPurchasesList } from '@/components/products/ProductPurchasesList';
 import { UnitManagement } from '@/components/products/UnitManagement';
 import { SupplierManagement } from '@/components/suppliers/SupplierManagement';
 import { Tables } from '@/integrations/supabase/types';
@@ -366,20 +367,18 @@ const Produtos: React.FC = () => {
 
         {/* Compras Tab */}
         <TabsContent value="compras" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestão de Compras</CardTitle>
-              <Button onClick={() => setShowPurchaseForm(true)} className="ml-auto">
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Compra
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Registre compras de produtos para atualizar o estoque automaticamente.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Gestão de Compras</h2>
+              <p className="text-muted-foreground">Registre e gerencie suas compras de produtos</p>
+            </div>
+            <Button onClick={() => setShowPurchaseForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Compra
+            </Button>
+          </div>
+          
+          <ProductPurchasesList refreshTrigger={Date.now()} />
         </TabsContent>
 
         {/* Unidades Tab */}
