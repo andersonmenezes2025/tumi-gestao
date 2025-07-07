@@ -57,6 +57,7 @@ const Produtos: React.FC = () => {
   const [showSupplierManagement, setShowSupplierManagement] = useState(false);
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   const { products, categories, loading, createProduct, updateProduct, deleteProduct, refreshCategories, refreshProducts } = useProducts();
   const { toast } = useToast();
@@ -378,7 +379,7 @@ const Produtos: React.FC = () => {
             </Button>
           </div>
           
-          <ProductPurchasesList refreshTrigger={Date.now()} />
+          <ProductPurchasesList refreshTrigger={refreshTrigger} />
         </TabsContent>
 
         {/* Unidades Tab */}
@@ -393,6 +394,7 @@ const Produtos: React.FC = () => {
         onOpenChange={setShowPurchaseForm}
         onSuccess={() => {
           refreshProducts();
+          setRefreshTrigger(prev => prev + 1);
           toast({ title: "Compra registrada!", description: "Estoque atualizado com sucesso." });
         }}
       />
