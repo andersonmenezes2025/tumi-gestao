@@ -39,11 +39,11 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   
   const [formData, setFormData] = useState({
-    customer_name: quote?.customer_name || '',
-    customer_email: quote?.customer_email || '',
-    customer_phone: quote?.customer_phone || '',
-    notes: quote?.notes || '',
-    valid_until: quote?.valid_until || ''
+    customer_name: '',
+    customer_email: '',
+    customer_phone: '',
+    notes: '',
+    valid_until: ''
   });
   
   const [items, setItems] = useState<QuoteItem[]>([
@@ -55,6 +55,35 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
   const { companyId } = useCompany();
   const { products } = useProducts();
   const { customers } = useCustomers();
+
+  // Initialize form data when quote prop changes
+  useEffect(() => {
+    if (quote) {
+      setFormData({
+        customer_name: quote.customer_name || '',
+        customer_email: quote.customer_email || '',
+        customer_phone: quote.customer_phone || '',
+        notes: quote.notes || '',
+        valid_until: quote.valid_until || ''
+      });
+      
+      // TODO: Load quote items from database
+      setItems([
+        { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }
+      ]);
+    } else {
+      setFormData({
+        customer_name: '',
+        customer_email: '',
+        customer_phone: '',
+        notes: '',
+        valid_until: ''
+      });
+      setItems([
+        { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }
+      ]);
+    }
+  }, [quote, open]);
 
   // Update form when customer is selected
   useEffect(() => {

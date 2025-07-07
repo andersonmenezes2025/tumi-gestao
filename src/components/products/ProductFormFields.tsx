@@ -1,12 +1,18 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { SupplierForm } from '@/components/suppliers/SupplierForm';
 import { Tables } from '@/integrations/supabase/types';
 
 type ProductCategory = Tables<'product_categories'>;
+type Supplier = Tables<'suppliers'>;
 
 interface ProductFormData {
   name: string;
@@ -15,6 +21,7 @@ interface ProductFormData {
   cost_price: number;
   category_id: string;
   unit: string;
+  supplier_id?: string;
 }
 
 interface ProductFormFieldsProps {
@@ -25,6 +32,15 @@ interface ProductFormFieldsProps {
 }
 
 export function ProductFormFields({ formData, setFormData, categories, errors }: ProductFormFieldsProps) {
+  const [supplierType, setSupplierType] = useState<'existing' | 'new'>('existing');
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
+  const { suppliers } = useSuppliers();
+
+  const handleSupplierCreated = (supplier: Supplier) => {
+    setFormData(prev => ({ ...prev, supplier_id: supplier.id }));
+    setShowSupplierForm(false);
+  };
+
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
@@ -65,7 +81,6 @@ export function ProductFormFields({ formData, setFormData, categories, errors }:
         />
       </div>
 
-
       <div className="space-y-2">
         <Label htmlFor="unit">Unidade</Label>
         <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
@@ -94,6 +109,68 @@ export function ProductFormFields({ formData, setFormData, categories, errors }:
           </SelectContent>
         </Select>
       </div>
+
+      {/* Supplier Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Fornecedor</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RadioGroup 
+            value={supplierType} 
+            onValueChange={(value: 'existing' | 'new') => setSupplierType(value)}
+            className="flex gap-6"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="existing" id="existing-supplier" />
+              <Label htmlFor="existing-supplier">Fornecedor Existente</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="new" id="new-supplier" />
+              <Label htmlFor="new-supplier">Novo Fornecedor</Label>
+            </div>
+          </RadioGroup>
+
+          {supplierType === 'existing' ? (
+            <div className="space-y-2">
+              <Label htmlFor="supplier-select">Selecionar Fornecedor</Label>
+              <Select 
+                value={formData.supplier_id || ''} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, supplier_id: value || undefined }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um fornecedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowSupplierForm(true)}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Cadastrar Novo Fornecedor
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <SupplierForm
+        open={showSupplierForm}
+        onOpenChange={setShowSupplierForm}
+        onSuccess={handleSupplierCreated}
+      />
     </>
   );
 }

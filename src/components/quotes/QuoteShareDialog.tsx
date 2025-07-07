@@ -70,7 +70,7 @@ export function QuoteShareDialog({ quote, onClose }: QuoteShareDialogProps) {
 
   // Check if quote already has a public token
   const existingLink = quote?.public_token 
-    ? `${window.location.origin}/orcamento/${quote.public_token}`
+    ? `${window.location.origin}/quote/${quote.public_token}`
     : null;
 
   return (

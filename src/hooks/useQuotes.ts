@@ -134,7 +134,7 @@ export function useQuotes() {
 
       // Return the public URL
       const baseUrl = window.location.origin;
-      return `${baseUrl}/orcamento/${tokenData}`;
+      return `${baseUrl}/quote/${tokenData}`;
     } catch (error: any) {
       toast({
         title: "Erro ao gerar link",

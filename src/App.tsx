@@ -20,6 +20,7 @@ import Orcamentos from "./pages/Orcamentos";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
 import PublicQuote from "./pages/PublicQuote";
+import SharedQuote from "./pages/SharedQuote";
 import OnlineQuotes from "./pages/OnlineQuotes";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +45,7 @@ const App = () => (
             <Routes>
               {/* Public routes */}
               <Route path="/orcamento/:companyId" element={<PublicQuote />} />
+              <Route path="/quote/:token" element={<SharedQuote />} />
               
               {/* Protected routes */}
               <Route path="/*" element={
