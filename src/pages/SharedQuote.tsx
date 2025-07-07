@@ -35,7 +35,7 @@ export default function SharedQuote() {
         .from('quotes')
         .select(`
           *,
-          companies (*)
+          companies!inner(*)
         `)
         .eq('public_token', token)
         .single();

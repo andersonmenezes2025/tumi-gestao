@@ -41,11 +41,13 @@ const Orcamentos: React.FC = () => {
     }
   };
 
-  const handleSubmitQuote = async (quoteData: Omit<Quote, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleSubmitQuote = async (quoteDataOrId: any, itemsOrQuoteData?: any, items?: any[]) => {
     if (editingQuote) {
-      await updateQuote(editingQuote.id, quoteData);
+      // Update existing quote
+      await updateQuote(quoteDataOrId, itemsOrQuoteData, items);
     } else {
-      await createQuote(quoteData);
+      // Create new quote
+      await createQuote(quoteDataOrId, itemsOrQuoteData);
     }
     setEditingQuote(null);
   };

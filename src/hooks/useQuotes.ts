@@ -34,7 +34,7 @@ export function useQuotes() {
     }
   };
 
-  const createQuote = async (quote: Omit<Quote, 'id' | 'created_at' | 'updated_at'>) => {
+  const createQuote = async (quote: Omit<Quote, 'id' | 'created_at' | 'updated_at'>, items?: any[]) => {
     try {
       const { data, error } = await supabase
         .from('quotes')
@@ -43,6 +43,24 @@ export function useQuotes() {
         .single();
 
       if (error) throw error;
+      
+      // Save quote items if provided
+      if (items && items.length > 0) {
+        const quoteItems = items.map(item => ({
+          quote_id: data.id,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('quote_items')
+          .insert(quoteItems);
+
+        if (itemsError) throw itemsError;
+      }
       
       setQuotes(prev => [data, ...prev]);
       toast({
@@ -61,7 +79,7 @@ export function useQuotes() {
     }
   };
 
-  const updateQuote = async (id: string, updates: Partial<Quote>) => {
+  const updateQuote = async (id: string, updates: Partial<Quote>, items?: any[]) => {
     try {
       const { data, error } = await supabase
         .from('quotes')
@@ -71,6 +89,33 @@ export function useQuotes() {
         .single();
 
       if (error) throw error;
+      
+      // Update quote items if provided
+      if (items) {
+        // Delete existing items
+        await supabase
+          .from('quote_items')
+          .delete()
+          .eq('quote_id', id);
+
+        // Insert new items
+        if (items.length > 0) {
+          const quoteItems = items.map(item => ({
+            quote_id: id,
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price
+          }));
+
+          const { error: itemsError } = await supabase
+            .from('quote_items')
+            .insert(quoteItems);
+
+          if (itemsError) throw itemsError;
+        }
+      }
       
       setQuotes(prev => prev.map(q => q.id === id ? data : q));
       toast({

@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
+import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 
 type Quote = Tables<'quotes'>;
@@ -30,7 +31,7 @@ interface QuoteItem {
 interface QuoteFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (quote: Omit<Quote, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  onSubmit: (quoteDataOrId: any, itemsOrQuoteData?: any, items?: any[]) => Promise<void>;
   quote?: Quote | null;
 }
 
@@ -67,10 +68,8 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
         valid_until: quote.valid_until || ''
       });
       
-      // TODO: Load quote items from database
-      setItems([
-        { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }
-      ]);
+      // Load quote items from database
+      loadQuoteItems(quote.id);
     } else {
       setFormData({
         customer_name: '',
@@ -84,6 +83,39 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
       ]);
     }
   }, [quote, open]);
+
+  const loadQuoteItems = async (quoteId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('quote_items')
+        .select('*')
+        .eq('quote_id', quoteId);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const loadedItems: QuoteItem[] = data.map(item => ({
+          id: item.id,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price
+        }));
+        setItems(loadedItems);
+      } else {
+        setItems([
+          { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }
+        ]);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar itens do orçamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   // Update form when customer is selected
   useEffect(() => {
@@ -160,7 +192,17 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
         public_token: null
       };
 
-      await onSubmit(quoteData);
+      // Filter out empty items
+      const validItems = items.filter(item => 
+        item.product_name && item.quantity > 0 && item.unit_price >= 0
+      );
+
+      if (quote) {
+        await onSubmit(quote.id, quoteData, validItems);
+      } else {
+        await onSubmit(quoteData, validItems);
+      }
+      
       onOpenChange(false);
       
       // Reset form
