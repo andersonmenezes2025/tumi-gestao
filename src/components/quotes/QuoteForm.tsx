@@ -162,9 +162,16 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
       }
     }
     
+    // Manual product name entry when no product_id is selected
+    if (field === 'product_name' && !newItems[index].product_id) {
+      newItems[index].product_name = value;
+    }
+    
     // Calculate total price for the item (always recalculate when quantity, unit_price, or product changes)
     if (field === 'quantity' || field === 'unit_price' || field === 'product_id') {
-      newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+      const quantity = newItems[index].quantity;
+      const unitPrice = newItems[index].unit_price;
+      newItems[index].total_price = quantity * unitPrice;
     }
     
     setItems(newItems);
@@ -176,7 +183,84 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId) return;
+    
+    // Validações básicas
+    if (!companyId) {
+      toast({
+        title: "Erro",
+        description: "ID da empresa não encontrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar dados do cliente
+    if (!formData.customer_name.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome do cliente é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.customer_email.trim()) {
+      toast({
+        title: "Erro", 
+        description: "Email do cliente é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar formato do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.customer_email)) {
+      toast({
+        title: "Erro",
+        description: "Email inválido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar cliente existente selecionado
+    if (customerType === 'existing' && !selectedCustomerId) {
+      toast({
+        title: "Erro",
+        description: "Selecione um cliente existente",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar itens do orçamento
+    const validItems = items.filter(item => 
+      item.product_name && item.quantity > 0 && item.unit_price >= 0
+    );
+
+    if (validItems.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Adicione pelo menos um item válido ao orçamento",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar se há produtos sem nome
+    const invalidItems = items.filter(item => 
+      item.quantity > 0 && (!item.product_name || item.unit_price < 0)
+    );
+
+    if (invalidItems.length > 0) {
+      toast({
+        title: "Erro",
+        description: "Todos os itens devem ter produto selecionado e preço válido",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -192,15 +276,13 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
         public_token: null
       };
 
-      // Filter out empty items
-      const validItems = items.filter(item => 
-        item.product_name && item.quantity > 0 && item.unit_price >= 0
-      );
+      // Filter out empty items - use the already validated items
+      const finalItems = validItems;
 
       if (quote) {
-        await onSubmit(quote.id, quoteData, validItems);
+        await onSubmit(quote.id, quoteData, finalItems);
       } else {
-        await onSubmit(quoteData, validItems);
+        await onSubmit(quoteData, finalItems);
       }
       
       onOpenChange(false);
@@ -214,8 +296,15 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
         valid_until: ''
       });
       setItems([{ product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }]);
-    } catch (error) {
-      // Error handling is done in the parent component
+      setCustomerType('new');
+      setSelectedCustomerId('');
+    } catch (error: any) {
+      console.error('Error in quote form:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar orçamento",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -358,22 +447,49 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
                     
                     <div className="grid grid-cols-4 gap-4">
                       <div className="space-y-2">
-                        <Label>Produto</Label>
-                        <Select
-                          value={item.product_id || ''}
-                          onValueChange={(value) => updateItem(index, 'product_id', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um produto" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} - R$ {product.price.toFixed(2)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label>Produto/Serviço</Label>
+                        {!item.product_id ? (
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Digite o nome do produto/serviço"
+                              value={item.product_name}
+                              onChange={(e) => updateItem(index, 'product_name', e.target.value)}
+                            />
+                            <Select
+                              value={item.product_id || ''}
+                              onValueChange={(value) => updateItem(index, 'product_id', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Ou selecione um produto" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products.map((product) => (
+                                  <SelectItem key={product.id} value={product.id}>
+                                    {product.name} - R$ {product.price.toFixed(2)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="p-2 bg-gray-100 rounded border">
+                              {item.product_name}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                updateItem(index, 'product_id', null);
+                                updateItem(index, 'product_name', '');
+                                updateItem(index, 'unit_price', 0);
+                              }}
+                            >
+                              Alterar produto
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="space-y-2">
@@ -435,7 +551,11 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button 
+              type="submit" 
+              disabled={loading || !formData.customer_name.trim() || !formData.customer_email.trim()}
+              className={(!formData.customer_name.trim() || !formData.customer_email.trim()) ? 'opacity-50' : ''}
+            >
               {loading ? 'Salvando...' : 'Salvar Orçamento'}
             </Button>
           </div>

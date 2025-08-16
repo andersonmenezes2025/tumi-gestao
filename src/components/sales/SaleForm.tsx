@@ -164,7 +164,71 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId || saleItems.length === 0) return;
+    
+    // Validações básicas
+    if (!companyId) {
+      toast({
+        title: "Erro",
+        description: "ID da empresa não encontrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (saleItems.length === 0) {
+      toast({
+        title: "Erro", 
+        description: "Adicione pelo menos um produto à venda",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar se há produtos válidos na venda
+    const invalidItems = saleItems.filter(item => 
+      !item.product_id || 
+      !item.product_name || 
+      item.quantity <= 0 || 
+      item.unit_price < 0
+    );
+
+    if (invalidItems.length > 0) {
+      toast({
+        title: "Erro",
+        description: "Todos os itens devem ter produto, quantidade maior que 0 e preço válido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar método de pagamento
+    if (!paymentMethod) {
+      toast({
+        title: "Erro",
+        description: "Selecione um método de pagamento",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar cliente quando necessário
+    if (customerType === 'existing' && !selectedCustomer) {
+      toast({
+        title: "Erro",
+        description: "Selecione um cliente existente",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (customerType === 'new' && !newCustomer.name.trim()) {
+      toast({
+        title: "Erro", 
+        description: "Nome do cliente é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -631,7 +695,8 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || saleItems.length === 0}
+              disabled={loading || saleItems.length === 0 || !paymentMethod}
+              className={!paymentMethod ? 'opacity-50' : ''}
             >
               {loading 
                 ? 'Salvando...' 
