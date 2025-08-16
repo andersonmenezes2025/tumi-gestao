@@ -14,7 +14,7 @@ import Financeiro from "./pages/Financeiro";
 import Configuracoes from "./pages/Configuracoes";
 import Vendas from "./pages/Vendas";
 import Relatorios from "./pages/Relatorios";
-import Automacao from "./pages/Automacao";
+import AutomacaoNew from "./pages/AutomacaoNew";
 import Agenda from "./pages/Agenda";
 import Orcamentos from "./pages/Orcamentos";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -60,7 +60,7 @@ const App = () => (
                       <Route path="/clientes" element={<Clientes />} />
                       <Route path="/financeiro" element={<Financeiro />} />
                       <Route path="/relatorios" element={<Relatorios />} />
-                      <Route path="/automacao" element={<Automacao />} />
+                      <Route path="/automacao" element={<AutomacaoNew />} />
                       <Route path="/agenda" element={<Agenda />} />
                       <Route path="/configuracoes" element={<Configuracoes />} />
                       <Route path="/payment-success" element={<PaymentSuccess />} />

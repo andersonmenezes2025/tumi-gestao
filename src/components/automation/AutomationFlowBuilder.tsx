@@ -17,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,7 +25,6 @@ import {
   Play, 
   Save, 
   Plus, 
-  Settings, 
   Zap, 
   Mail, 
   MessageSquare, 
@@ -38,6 +36,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAutomationFlows } from '@/hooks/useAutomationFlows';
 
 // Custom Node Components
 const TriggerNode = ({ data }: { data: any }) => (
@@ -103,7 +102,7 @@ const initialEdges: Edge[] = [];
 
 interface AutomationFlowBuilderProps {
   trigger?: React.ReactNode;
-  onSave?: (flowData: any) => void;
+  onSave?: (flowData: any) => Promise<void> | void;
 }
 
 export function AutomationFlowBuilder({ trigger, onSave }: AutomationFlowBuilderProps) {
@@ -111,11 +110,12 @@ export function AutomationFlowBuilder({ trigger, onSave }: AutomationFlowBuilder
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [flowName, setFlowName] = useState('');
-  const [selectedNodeType, setSelectedNodeType] = useState<string>('');
   const [nodeCounter, setNodeCounter] = useState(2);
   const [isTestMode, setIsTestMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { toast } = useToast();
+  const { createFlow, isCreating } = useAutomationFlows();
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -212,26 +212,58 @@ export function AutomationFlowBuilder({ trigger, onSave }: AutomationFlowBuilder
       return;
     }
 
-    const flowData = {
-      name: flowName,
-      nodes,
-      edges,
-      metadata: {
-        created_at: new Date().toISOString(),
-        node_count: nodes.length,
-        edge_count: edges.length,
+    setIsSaving(true);
+    
+    try {
+      const flowData = {
+        name: flowName,
+        description: `Fluxo criado com ${nodes.length} nós`,
+        type: 'custom' as const,
+        configuration: {
+          nodes: nodes,
+          edges: edges
+        },
+        actions: nodes.filter(n => n.type !== 'trigger').map(n => ({
+          id: n.id,
+          type: n.type,
+          data: n.data
+        })),
+        trigger_conditions: nodes
+          .filter(n => n.type === 'trigger')
+          .reduce((acc, n) => ({ ...acc, ...n.data }), {}),
+        is_active: true,
+        webhook_url: null,
+        execution_count: 0,
+        success_count: 0,
+        error_count: 0,
+        last_executed_at: null
+      };
+
+      if (onSave) {
+        await onSave(flowData);
+      } else {
+        await createFlow(flowData);
       }
-    };
 
-    if (onSave) {
-      onSave(flowData);
+      toast({
+        title: 'Fluxo Salvo',
+        description: `O fluxo "${flowName}" foi salvo com sucesso!`,
+      });
+
+      setIsOpen(false);
+      setFlowName('');
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+      setNodeCounter(2);
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar o fluxo. Tente novamente.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
     }
-
-    toast({
-      title: 'Fluxo Salvo',
-      description: `O fluxo "${flowName}" foi salvo com sucesso!`,
-    });
-    setIsOpen(false);
   };
 
   const DefaultTrigger = (
@@ -358,9 +390,13 @@ export function AutomationFlowBuilder({ trigger, onSave }: AutomationFlowBuilder
               <Play className="h-4 w-4" />
               {isTestMode ? 'Testando...' : 'Testar'}
             </Button>
-            <Button onClick={saveFlow} className="gap-2">
+            <Button 
+              onClick={saveFlow} 
+              disabled={isSaving || isCreating}
+              className="gap-2"
+            >
               <Save className="h-4 w-4" />
-              Salvar Fluxo
+              {(isSaving || isCreating) ? 'Salvando...' : 'Salvar Fluxo'}
             </Button>
           </div>
         </div>
