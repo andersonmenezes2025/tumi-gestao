@@ -452,7 +452,22 @@ export type Database = {
           total_price?: number
           unit_price?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_online_quote_items_online_quote_id"
+            columns: ["online_quote_id"]
+            isOneToOne: false
+            referencedRelation: "online_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_online_quote_items_product_id"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       online_quotes: {
         Row: {
