@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -421,6 +421,39 @@ export type Database = {
           },
         ]
       }
+      online_quote_items: {
+        Row: {
+          created_at: string
+          id: string
+          online_quote_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          online_quote_id: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          online_quote_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: []
+      }
       online_quotes: {
         Row: {
           company_id: string
@@ -431,6 +464,7 @@ export type Database = {
           customer_phone: string | null
           id: string
           message: string | null
+          observations: string | null
           status: string | null
           updated_at: string
         }
@@ -443,6 +477,7 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           message?: string | null
+          observations?: string | null
           status?: string | null
           updated_at?: string
         }
@@ -455,6 +490,7 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           message?: string | null
+          observations?: string | null
           status?: string | null
           updated_at?: string
         }

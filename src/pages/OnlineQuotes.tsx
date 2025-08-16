@@ -50,7 +50,17 @@ export default function OnlineQuotes() {
     try {
       const { data, error } = await supabase
         .from('online_quotes')
-        .select('*')
+        .select(`
+          *,
+          online_quote_items (
+            id,
+            product_id,
+            product_name,
+            quantity,
+            unit_price,
+            total_price
+          )
+        `)
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
@@ -377,6 +387,46 @@ export default function OnlineQuotes() {
                   rows={4}
                 />
               </div>
+              
+              {selectedQuote.observations && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Observações</Label>
+                  <Textarea
+                    value={selectedQuote.observations}
+                    readOnly
+                    className="bg-muted"
+                    rows={3}
+                  />
+                </div>
+              )}
+              
+              {/* Produtos Selecionados */}
+              {(selectedQuote as any).online_quote_items && (selectedQuote as any).online_quote_items.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Produtos Solicitados</Label>
+                  <div className="border rounded-md p-4 bg-muted space-y-3">
+                    {(selectedQuote as any).online_quote_items.map((item: any, index: number) => (
+                      <div key={item.id || index} className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{item.product_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Quantidade: {item.quantity} × R$ {item.unit_price.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">R$ {item.total_price.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between items-center font-semibold">
+                        <span>Total:</span>
+                        <span>R$ {((selectedQuote as any).online_quote_items.reduce((sum: number, item: any) => sum + parseFloat(item.total_price), 0)).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="flex justify-between items-center pt-4 border-t">
                 <div className="text-sm text-muted-foreground">

@@ -4,14 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useParams } from 'react-router-dom';
-import { Building2, Mail, Phone, MessageSquare, CheckCircle } from 'lucide-react';
+import { Building2, Mail, Phone, MessageSquare, CheckCircle, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { Tables } from '@/integrations/supabase/types';
+
+type Product = Tables<'products'>;
+
+interface QuoteItem {
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
 
 export default function PublicQuote() {
   const { companyId } = useParams();
   const [company, setCompany] = useState<any>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -22,11 +35,19 @@ export default function PublicQuote() {
     customer_email: '',
     customer_phone: '',
     company_name: '',
-    message: ''
+    message: '',
+    observations: ''
   });
 
+  const [items, setItems] = useState<QuoteItem[]>([
+    { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }
+  ]);
+
   useEffect(() => {
-    fetchCompany();
+    if (companyId) {
+      fetchCompany();
+      fetchProducts();
+    }
   }, [companyId]);
 
   const fetchCompany = async () => {
@@ -70,13 +91,78 @@ export default function PublicQuote() {
     }
   };
 
+  const fetchProducts = async () => {
+    if (!companyId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('active', true)
+        .order('name');
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error: any) {
+      console.error('Erro ao buscar produtos:', error);
+    }
+  };
+
+  const addItem = () => {
+    setItems(prev => [...prev, { product_id: null, product_name: '', quantity: 1, unit_price: 0, total_price: 0 }]);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length > 1) {
+      setItems(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateItem = (index: number, field: keyof QuoteItem, value: any) => {
+    setItems(prev => {
+      const newItems = [...prev];
+      newItems[index] = { ...newItems[index], [field]: value };
+      
+      if (field === 'product_id' && value) {
+        const product = products.find(p => p.id === value);
+        if (product) {
+          newItems[index].product_name = product.name;
+          newItems[index].unit_price = product.price;
+        }
+      }
+      
+      if (field === 'quantity' || field === 'unit_price') {
+        newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+      }
+      
+      return newItems;
+    });
+  };
+
+  const getTotalAmount = () => {
+    return items.reduce((sum, item) => sum + item.total_price, 0);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyId) return;
 
+    // Validar se há pelo menos um item com produto selecionado
+    const validItems = items.filter(item => item.product_id && item.quantity > 0);
+    if (validItems.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Selecione pelo menos um produto para solicitar o orçamento.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const { error } = await supabase
+      // Inserir o orçamento online
+      const { data: quoteData, error: quoteError } = await supabase
         .from('online_quotes')
         .insert([{
           company_id: companyId,
@@ -85,10 +171,31 @@ export default function PublicQuote() {
           customer_phone: formData.customer_phone || null,
           company_name: formData.company_name || null,
           message: formData.message || null,
+          observations: formData.observations || null,
           status: 'pending'
-        }]);
+        }])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (quoteError) throw quoteError;
+
+      // Inserir os itens do orçamento
+      if (quoteData && validItems.length > 0) {
+        const itemsToInsert = validItems.map(item => ({
+          online_quote_id: quoteData.id,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('online_quote_items')
+          .insert(itemsToInsert);
+
+        if (itemsError) throw itemsError;
+      }
 
       setSubmitted(true);
       toast({
@@ -254,6 +361,93 @@ export default function PublicQuote() {
                 </div>
               </div>
 
+              {/* Seção de Produtos */}
+              <Card className="bg-gray-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ShoppingCart className="h-5 w-5" />
+                    Selecione os Produtos
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Escolha os produtos para seu orçamento
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {items.map((item, index) => (
+                    <div key={index} className="bg-white p-4 rounded-lg border space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`product_${index}`}>Produto *</Label>
+                          <Select
+                            value={item.product_id || ''}
+                            onValueChange={(value) => updateItem(index, 'product_id', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um produto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} - R$ {product.price.toFixed(2)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`quantity_${index}`}>Quantidade *</Label>
+                          <Input
+                            id={`quantity_${index}`}
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
+                            placeholder="1"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Total</Label>
+                          <div className="px-3 py-2 bg-gray-100 rounded-md text-sm font-medium">
+                            R$ {item.total_price.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeItem(index)}
+                          disabled={items.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remover
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div className="flex justify-between items-center pt-4 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addItem}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Produto
+                    </Button>
+                    
+                    <div className="text-lg font-semibold">
+                      Total: R$ {getTotalAmount().toFixed(2)}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="space-y-2">
                 <Label htmlFor="message">Descreva o que você precisa</Label>
                 <Textarea
@@ -261,7 +455,18 @@ export default function PublicQuote() {
                   value={formData.message}
                   onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                   placeholder="Descreva detalhadamente o produto ou serviço que você precisa..."
-                  rows={6}
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="observations">Observações</Label>
+                <Textarea
+                  id="observations"
+                  value={formData.observations}
+                  onChange={(e) => setFormData(prev => ({ ...prev, observations: e.target.value }))}
+                  placeholder="Informações adicionais, prazos, condições especiais..."
+                  rows={3}
                 />
               </div>
 
