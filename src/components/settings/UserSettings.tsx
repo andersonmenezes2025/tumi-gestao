@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, User } from 'lucide-react';
+import { Loader2, User, Shield } from 'lucide-react';
+import { ChangePasswordForm } from './ChangePasswordForm';
 
 const userSchema = z.object({
   full_name: z.string()
@@ -155,23 +156,47 @@ export function UserSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Segurança</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Segurança
+          </CardTitle>
           <CardDescription>
-            Configurações de segurança da conta
+            Configurações de segurança da sua conta
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Alterar Senha</p>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex-1">
+                <h3 className="font-medium">Alterar Senha</h3>
                 <p className="text-sm text-muted-foreground">
-                  Mantenha sua conta segura com uma senha forte
+                  Mantenha sua conta segura com uma senha forte. 
+                  Recomendamos alterar sua senha periodicamente.
+                </p>
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Última alteração: Nunca
+                  </div>
+                </div>
+              </div>
+              <div className="ml-4">
+                <ChangePasswordForm />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 border rounded-lg opacity-50">
+              <div className="flex-1">
+                <h3 className="font-medium">Autenticação em Duas Etapas</h3>
+                <p className="text-sm text-muted-foreground">
+                  Adicione uma camada extra de segurança à sua conta
                 </p>
               </div>
-              <Button variant="outline" disabled>
-                Em Breve
-              </Button>
+              <div className="ml-4">
+                <Button variant="outline" disabled>
+                  Em Breve
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
