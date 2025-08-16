@@ -3,9 +3,45 @@
  * Security utilities for production
  */
 
-// Input sanitization
+// Enhanced input sanitization
 export const sanitizeInput = (input: string): string => {
-  return input.trim().replace(/[<>]/g, '');
+  if (!input || typeof input !== 'string') return '';
+  
+  return input
+    .trim()
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Remove script content
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    // Remove javascript: URLs
+    .replace(/javascript:/gi, '')
+    // Remove on* event handlers
+    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
+    // HTML entity encode special characters
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+};
+
+// Sanitize HTML content while preserving safe tags
+export const sanitizeHTML = (html: string): string => {
+  if (!html || typeof html !== 'string') return '';
+  
+  // Allow only safe HTML tags and attributes
+  const allowedTags = ['b', 'i', 'u', 'em', 'strong', 'p', 'br', 'span'];
+  const tagRegex = /<(\/?)([\w]+)([^>]*)>/gi;
+  
+  return html.replace(tagRegex, (match, closing, tagName, attributes) => {
+    if (allowedTags.includes(tagName.toLowerCase())) {
+      // Remove potentially dangerous attributes
+      const cleanAttributes = attributes.replace(/\s*(on\w+|javascript:|data:|style)\s*=\s*["'][^"']*["']/gi, '');
+      return `<${closing}${tagName}${cleanAttributes}>`;
+    }
+    return ''; // Remove disallowed tags
+  });
 };
 
 // Email validation

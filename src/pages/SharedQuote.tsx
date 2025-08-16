@@ -30,15 +30,10 @@ export default function SharedQuote() {
     console.log('SharedQuote: Buscando orçamento com token:', token);
     
     try {
-      // Fetch quote by public token
+      // Fetch secure quote data using security definer function
       const { data: quoteData, error: quoteError } = await supabase
-        .from('quotes')
-        .select(`
-          *,
-          companies!inner(*)
-        `)
-        .eq('public_token', token)
-        .single();
+        .rpc('get_public_quote_data', { token_param: token })
+        .maybeSingle();
 
       console.log('SharedQuote: Resultado da busca do orçamento:', { quoteData, quoteError });
 
@@ -49,18 +44,29 @@ export default function SharedQuote() {
       
       if (!quoteData) {
         console.error('SharedQuote: Orçamento não encontrado para token:', token);
-        throw new Error('Orçamento não encontrado');
+        throw new Error('Orçamento não encontrado ou expirado');
       }
       
       console.log('SharedQuote: Orçamento encontrado:', quoteData);
       setQuote(quoteData);
-      setCompany(quoteData.companies);
 
-      // Fetch quote items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('quote_items')
+      // Fetch company data from public view (secure)
+      const { data: companyData, error: companyError } = await supabase
+        .from('public_companies')
         .select('*')
-        .eq('quote_id', quoteData.id);
+        .eq('id', quoteData.company_id)
+        .maybeSingle();
+
+      if (companyError) {
+        console.error('SharedQuote: Erro ao buscar empresa:', companyError);
+        throw companyError;
+      }
+      
+      setCompany(companyData);
+
+      // Fetch secure quote items using security definer function
+      const { data: itemsData, error: itemsError } = await supabase
+        .rpc('get_public_quote_items', { token_param: token });
 
       if (itemsError) {
         console.error('SharedQuote: Erro ao buscar itens:', itemsError);
@@ -167,7 +173,7 @@ export default function SharedQuote() {
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle className="text-2xl">Orçamento</CardTitle>
-                <p className="text-muted-foreground mt-1">Para: {quote.customer_name}</p>
+                <p className="text-muted-foreground mt-1">Proposta Comercial</p>
               </div>
               <div className="text-right">
                 {getStatusBadge(quote.status || 'pending')}
@@ -184,23 +190,11 @@ export default function SharedQuote() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <h3 className="font-semibold mb-2">Informações do Cliente</h3>
-                <div className="space-y-1 text-sm">
-                  <p><strong>Nome:</strong> {quote.customer_name}</p>
-                  <p><strong>Email:</strong> {quote.customer_email}</p>
-                  {quote.customer_phone && (
-                    <p><strong>Telefone:</strong> {quote.customer_phone}</p>
-                  )}
-                </div>
-              </div>
+            <div className="mb-6">
               <div>
                 <h3 className="font-semibold mb-2">Informações da Empresa</h3>
                 <div className="space-y-1 text-sm">
                   <p><strong>Empresa:</strong> {company.name}</p>
-                  {company.email && <p><strong>Email:</strong> {company.email}</p>}
-                  {company.phone && <p><strong>Telefone:</strong> {company.phone}</p>}
                 </div>
               </div>
             </div>
@@ -217,9 +211,7 @@ export default function SharedQuote() {
                     <thead>
                       <tr className="bg-gray-50">
                         <th className="border border-gray-200 px-4 py-2 text-left">Item</th>
-                        <th className="border border-gray-200 px-4 py-2 text-right">Qtd</th>
-                        <th className="border border-gray-200 px-4 py-2 text-right">Preço Unit.</th>
-                        <th className="border border-gray-200 px-4 py-2 text-right">Total</th>
+                        <th className="border border-gray-200 px-4 py-2 text-right">Quantidade</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -227,18 +219,12 @@ export default function SharedQuote() {
                         <tr key={item.id}>
                           <td className="border border-gray-200 px-4 py-2">{item.product_name}</td>
                           <td className="border border-gray-200 px-4 py-2 text-right">{item.quantity}</td>
-                          <td className="border border-gray-200 px-4 py-2 text-right">
-                            R$ {item.unit_price.toFixed(2).replace('.', ',')}
-                          </td>
-                          <td className="border border-gray-200 px-4 py-2 text-right">
-                            R$ {item.total_price.toFixed(2).replace('.', ',')}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="bg-gray-50 font-semibold">
-                        <td colSpan={3} className="border border-gray-200 px-4 py-2 text-right">Total Geral:</td>
+                        <td className="border border-gray-200 px-4 py-2 text-right">Total Geral:</td>
                         <td className="border border-gray-200 px-4 py-2 text-right">
                           R$ {quote.total_amount.toFixed(2).replace('.', ',')}
                         </td>
@@ -264,7 +250,7 @@ export default function SharedQuote() {
                 className="bg-green-600 hover:bg-green-700"
                 onClick={() => {
                   const subject = `Aprovação do orçamento - ${company.name}`;
-                  const body = `Olá,\n\nGostaria de aprovar o orçamento enviado.\n\nAtenciosamente,\n${quote.customer_name}`;
+                  const body = `Olá,\n\nGostaria de aprovar o orçamento enviado.\n\nAtenciosamente`;
                   window.open(`mailto:${company.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
                 }}
               >
@@ -277,7 +263,7 @@ export default function SharedQuote() {
                 size="lg"
                 onClick={() => {
                   const subject = `Dúvidas sobre orçamento - ${company.name}`;
-                  const body = `Olá,\n\nTenho algumas dúvidas sobre o orçamento enviado.\n\nAtenciosamente,\n${quote.customer_name}`;
+                  const body = `Olá,\n\nTenho algumas dúvidas sobre o orçamento enviado.\n\nAtenciosamente`;
                   window.open(`mailto:${company.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
                 }}
               >
