@@ -215,22 +215,45 @@ export function AutomationFlowBuilder({ trigger, onSave }: AutomationFlowBuilder
     setIsSaving(true);
     
     try {
+      // Convert React Flow objects to JSON-serializable format
+      const serializableNodes = nodes.map(node => ({
+        id: node.id,
+        type: node.type || 'default',
+        position: node.position,
+        data: JSON.parse(JSON.stringify(node.data || {})),
+        style: JSON.parse(JSON.stringify(node.style || {}))
+      }));
+
+      const serializableEdges = edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type || 'default',
+        animated: edge.animated || false
+      }));
+
       const flowData = {
         name: flowName,
         description: `Fluxo criado com ${nodes.length} nós`,
         type: 'custom' as const,
-        configuration: {
-          nodes: nodes,
-          edges: edges
-        },
-        actions: nodes.filter(n => n.type !== 'trigger').map(n => ({
-          id: n.id,
-          type: n.type,
-          data: n.data
+        configuration: JSON.parse(JSON.stringify({
+          nodes: serializableNodes,
+          edges: serializableEdges
         })),
-        trigger_conditions: nodes
-          .filter(n => n.type === 'trigger')
-          .reduce((acc, n) => ({ ...acc, ...n.data }), {}),
+        actions: JSON.parse(JSON.stringify(
+          serializableNodes
+            .filter(n => n.type !== 'trigger')
+            .map(n => ({
+              id: n.id,
+              type: n.type,
+              data: n.data
+            }))
+        )),
+        trigger_conditions: JSON.parse(JSON.stringify(
+          serializableNodes
+            .filter(n => n.type === 'trigger')
+            .reduce((acc, n) => ({ ...acc, ...n.data }), {})
+        )),
         is_active: true,
         webhook_url: null,
         execution_count: 0,
