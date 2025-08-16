@@ -1482,6 +1482,26 @@ export type Database = {
         Args: { company_uuid: string }
         Returns: string
       }
+      get_public_quote_data: {
+        Args: { token_param: string }
+        Returns: {
+          company_id: string
+          id: string
+          notes: string
+          status: string
+          total_amount: number
+          valid_until: string
+        }[]
+      }
+      get_public_quote_items: {
+        Args: { token_param: string }
+        Returns: {
+          id: string
+          product_name: string
+          quantity: number
+          quote_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
