@@ -1,13 +1,13 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useIntegrations } from '@/hooks/useIntegrations';
+import { useCompany } from '@/hooks/useCompany';
 import { 
   Calendar, 
   MessageSquare, 
@@ -16,111 +16,167 @@ import {
   Instagram,
   Settings,
   Zap,
-  CreditCard
+  CreditCard,
+  Loader2
 } from 'lucide-react';
 
 export function IntegrationsSettings() {
   const { toast } = useToast();
+  const { companyId } = useCompany();
+  const { 
+    integrations, 
+    isLoading, 
+    createIntegration, 
+    updateIntegration,
+    getIntegrationByType,
+    isIntegrationActive 
+  } = useIntegrations();
+
   const [showGoogleDialog, setShowGoogleDialog] = useState(false);
-  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
-  const [showN8NDialog, setShowN8NDialog] = useState(false);
-  const [showStripeDialog, setShowStripeDialog] = useState(false);
-  
-  const [integrations, setIntegrations] = useState({
-    googleCalendar: false,
-    whatsapp: false,
-    email: false,
-    n8n: false,
-    stripe: false,
+  const [socialSettings, setSocialSettings] = useState({
+    facebookUrl: '',
+    instagramUrl: ''
   });
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const [settings, setSettings] = useState({
-    whatsappNumber: '',
-    webhookUrl: '',
-    stripeKey: '',
-    smtpServer: '',
-    emailFrom: '',
-  });
+  // Load existing social media settings
+  useEffect(() => {
+    const socialIntegration = getIntegrationByType('social_media');
+    if (socialIntegration?.settings && typeof socialIntegration.settings === 'object') {
+      const settings = socialIntegration.settings as { facebookUrl?: string; instagramUrl?: string };
+      setSocialSettings({
+        facebookUrl: settings.facebookUrl || '',
+        instagramUrl: settings.instagramUrl || ''
+      });
+    }
+  }, [integrations, getIntegrationByType]);
 
-  const handleToggleIntegration = (integration: string, enabled: boolean) => {
-    if (enabled) {
-      // Abrir dialog de configuração específico
-      switch (integration) {
-        case 'googleCalendar':
+  const handleToggleIntegration = async (type: string, enabled: boolean) => {
+    setIsUpdating(true);
+    try {
+      const existingIntegration = getIntegrationByType(type);
+      
+      if (existingIntegration) {
+        await updateIntegration({
+          id: existingIntegration.id,
+          active: enabled
+        });
+      } else if (enabled) {
+        // Open specific configuration dialog for some integrations
+        if (type === 'google_calendar') {
           setShowGoogleDialog(true);
-          break;
-        case 'whatsapp':
-          setShowWhatsAppDialog(true);
-          break;
-        case 'n8n':
-          setShowN8NDialog(true);
-          break;
-        case 'stripe':
-          setShowStripeDialog(true);
-          break;
-        default:
-          setIntegrations(prev => ({ ...prev, [integration]: enabled }));
+          setIsUpdating(false);
+          return;
+        }
+        
+        // For others, create a basic integration
+        await createIntegration({
+          type,
+          name: getIntegrationName(type),
+          active: enabled,
+          settings: {},
+          company_id: companyId!
+        });
       }
-    } else {
-      setIntegrations(prev => ({ ...prev, [integration]: enabled }));
+
       toast({
-        title: "Integração Desativada",
-        description: "Integração desativada com sucesso.",
+        title: enabled ? "Integração Ativada" : "Integração Desativada",
+        description: `${getIntegrationName(type)} ${enabled ? 'ativada' : 'desativada'} com sucesso.`,
       });
-    }
-  };
-
-  const handleGoogleCalendarSetup = () => {
-    setIntegrations(prev => ({ ...prev, googleCalendar: true }));
-    setShowGoogleDialog(false);
-    toast({
-      title: "Google Calendar Integrado",
-      description: "Sincronização com Google Calendar ativada com sucesso.",
-    });
-  };
-
-  const handleWhatsAppSetup = () => {
-    if (!settings.whatsappNumber) {
+    } catch (error) {
       toast({
         title: "Erro",
-        description: "Preencha o número do WhatsApp.",
-        variant: "destructive",
+        description: "Erro ao atualizar integração.",
+        variant: "destructive"
       });
-      return;
+    } finally {
+      setIsUpdating(false);
     }
-    setIntegrations(prev => ({ ...prev, whatsapp: true }));
-    setShowWhatsAppDialog(false);
-    toast({
-      title: "WhatsApp Integrado",
-      description: "WhatsApp configurado via N8N com sucesso.",
-    });
   };
 
-  const handleN8NSetup = () => {
-    if (!settings.webhookUrl) {
+  const handleSocialMediaUpdate = async () => {
+    setIsUpdating(true);
+    try {
+      const existingIntegration = getIntegrationByType('social_media');
+      
+      const integrationData = {
+        type: 'social_media',
+        name: 'Redes Sociais',
+        active: !!(socialSettings.facebookUrl || socialSettings.instagramUrl),
+        settings: socialSettings,
+        company_id: companyId!
+      };
+
+      if (existingIntegration) {
+        await updateIntegration({
+          id: existingIntegration.id,
+          ...integrationData
+        });
+      } else {
+        await createIntegration(integrationData);
+      }
+
+      toast({
+        title: "Redes Sociais Atualizadas",
+        description: "Configurações de redes sociais salvas com sucesso.",
+      });
+    } catch (error) {
       toast({
         title: "Erro",
-        description: "Configure a URL do webhook N8N.",
-        variant: "destructive",
+        description: "Erro ao atualizar redes sociais.",
+        variant: "destructive"
       });
-      return;
+    } finally {
+      setIsUpdating(false);
     }
-    setIntegrations(prev => ({ ...prev, n8n: true }));
-    setShowN8NDialog(false);
-    toast({
-      title: "N8N Integrado",
-      description: "Automações N8N configuradas com sucesso.",
-    });
   };
 
-  const handleStripeSetup = () => {
-    setIntegrations(prev => ({ ...prev, stripe: true }));
-    setShowStripeDialog(false);
-    toast({
-      title: "Stripe Integrado",
-      description: "Integração de pagamentos configurada com sucesso.",
-    });
+  const handleGoogleCalendarSetup = async () => {
+    try {
+      await createIntegration({
+        type: 'google_calendar',
+        name: 'Google Calendar',
+        active: true,
+        settings: {
+          configured_at: new Date().toISOString()
+        },
+        company_id: companyId!
+      });
+      
+      setShowGoogleDialog(false);
+      toast({
+        title: "Google Calendar Integrado",
+        description: "Sincronização com Google Calendar ativada com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao configurar Google Calendar.",
+        variant: "destructive"
+      });
+    }
   };
+
+  const getIntegrationName = (type: string) => {
+    const names: { [key: string]: string } = {
+      'google_calendar': 'Google Calendar',
+      'whatsapp_n8n': 'WhatsApp (N8N)',
+      'n8n_automation': 'N8N Automações',
+      'stripe_payments': 'Stripe Pagamentos',
+      'email_marketing': 'Email Marketing',
+      'social_media': 'Redes Sociais'
+    };
+    return names[type] || type;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-32">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -132,8 +188,9 @@ export function IntegrationsSettings() {
               <CardTitle className="text-base">Google Calendar</CardTitle>
             </div>
             <Switch 
-              checked={integrations.googleCalendar}
-              onCheckedChange={(checked) => handleToggleIntegration('googleCalendar', checked)}
+              checked={isIntegrationActive('google_calendar')}
+              onCheckedChange={(checked) => handleToggleIntegration('google_calendar', checked)}
+              disabled={isUpdating}
             />
           </CardHeader>
           <CardContent>
@@ -144,9 +201,9 @@ export function IntegrationsSettings() {
               variant="outline" 
               size="sm" 
               onClick={() => setShowGoogleDialog(true)}
-              disabled={integrations.googleCalendar}
+              disabled={isIntegrationActive('google_calendar') || isUpdating}
             >
-              {integrations.googleCalendar ? 'Configurado' : 'Configurar'}
+              {isIntegrationActive('google_calendar') ? 'Configurado' : 'Configurar'}
             </Button>
           </CardContent>
         </Card>
@@ -159,8 +216,9 @@ export function IntegrationsSettings() {
               <CardTitle className="text-base">WhatsApp (N8N)</CardTitle>
             </div>
             <Switch 
-              checked={integrations.whatsapp}
-              onCheckedChange={(checked) => handleToggleIntegration('whatsapp', checked)}
+              checked={isIntegrationActive('whatsapp_n8n')}
+              onCheckedChange={(checked) => handleToggleIntegration('whatsapp_n8n', checked)}
+              disabled={isUpdating}
             />
           </CardHeader>
           <CardContent>
@@ -170,10 +228,9 @@ export function IntegrationsSettings() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => setShowWhatsAppDialog(true)}
-              disabled={integrations.whatsapp}
+              disabled
             >
-              {integrations.whatsapp ? 'Configurado' : 'Configurar'}
+              Configurar
             </Button>
           </CardContent>
         </Card>
@@ -186,8 +243,9 @@ export function IntegrationsSettings() {
               <CardTitle className="text-base">N8N Automações</CardTitle>
             </div>
             <Switch 
-              checked={integrations.n8n}
-              onCheckedChange={(checked) => handleToggleIntegration('n8n', checked)}
+              checked={isIntegrationActive('n8n_automation')}
+              onCheckedChange={(checked) => handleToggleIntegration('n8n_automation', checked)}
+              disabled={isUpdating}
             />
           </CardHeader>
           <CardContent>
@@ -197,10 +255,9 @@ export function IntegrationsSettings() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => setShowN8NDialog(true)}
-              disabled={integrations.n8n}
+              disabled
             >
-              {integrations.n8n ? 'Configurado' : 'Configurar'}
+              Configurar
             </Button>
           </CardContent>
         </Card>
@@ -213,8 +270,9 @@ export function IntegrationsSettings() {
               <CardTitle className="text-base">Stripe Pagamentos</CardTitle>
             </div>
             <Switch 
-              checked={integrations.stripe}
-              onCheckedChange={(checked) => handleToggleIntegration('stripe', checked)}
+              checked={isIntegrationActive('stripe_payments')}
+              onCheckedChange={(checked) => handleToggleIntegration('stripe_payments', checked)}
+              disabled={isUpdating}
             />
           </CardHeader>
           <CardContent>
@@ -224,10 +282,9 @@ export function IntegrationsSettings() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => setShowStripeDialog(true)}
-              disabled={integrations.stripe}
+              disabled
             >
-              {integrations.stripe ? 'Configurado' : 'Configurar'}
+              Configurar
             </Button>
           </CardContent>
         </Card>
@@ -240,8 +297,9 @@ export function IntegrationsSettings() {
               <CardTitle className="text-base">Email Marketing</CardTitle>
             </div>
             <Switch 
-              checked={integrations.email}
-              onCheckedChange={(checked) => handleToggleIntegration('email', checked)}
+              checked={isIntegrationActive('email_marketing')}
+              onCheckedChange={(checked) => handleToggleIntegration('email_marketing', checked)}
+              disabled={isUpdating}
             />
           </CardHeader>
           <CardContent>
@@ -267,21 +325,49 @@ export function IntegrationsSettings() {
               Configure suas redes sociais para integração
             </CardDescription>
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Facebook className="h-4 w-4 text-blue-600" />
-                <Input placeholder="URL do Facebook" disabled />
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Facebook className="h-4 w-4 text-blue-600" />
+                  URL do Facebook
+                </Label>
+                <Input 
+                  placeholder="https://facebook.com/suapagina"
+                  value={socialSettings.facebookUrl}
+                  onChange={(e) => setSocialSettings(prev => ({ 
+                    ...prev, 
+                    facebookUrl: e.target.value 
+                  }))}
+                  disabled={isUpdating}
+                />
               </div>
-              <div className="flex items-center space-x-2">
-                <Instagram className="h-4 w-4 text-pink-500" />
-                <Input placeholder="URL do Instagram" disabled />
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Instagram className="h-4 w-4 text-pink-500" />
+                  URL do Instagram
+                </Label>
+                <Input 
+                  placeholder="https://instagram.com/seuperfil"
+                  value={socialSettings.instagramUrl}
+                  onChange={(e) => setSocialSettings(prev => ({ 
+                    ...prev, 
+                    instagramUrl: e.target.value 
+                  }))}
+                  disabled={isUpdating}
+                />
               </div>
+              <Button 
+                onClick={handleSocialMediaUpdate} 
+                disabled={isUpdating}
+                className="w-full"
+              >
+                {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar Configurações
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Dialogs de Configuração */}
-      
       {/* Google Calendar Dialog */}
       <Dialog open={showGoogleDialog} onOpenChange={setShowGoogleDialog}>
         <DialogContent>
@@ -309,124 +395,7 @@ export function IntegrationsSettings() {
         </DialogContent>
       </Dialog>
 
-      {/* WhatsApp Dialog */}
-      <Dialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Configurar WhatsApp via N8N</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="whatsapp_number">Número do WhatsApp</Label>
-              <Input
-                id="whatsapp_number"
-                placeholder="(11) 99999-9999"
-                value={settings.whatsappNumber}
-                onChange={(e) => setSettings(prev => ({ ...prev, whatsappNumber: e.target.value }))}
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p>Esta integração utiliza N8N para conectar com WhatsApp Business API. Certifique-se de ter:</p>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Conta WhatsApp Business</li>
-                <li>N8N configurado com workflow do WhatsApp</li>
-                <li>Tokens de API válidos</li>
-              </ul>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowWhatsAppDialog(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleWhatsAppSetup}>
-                Configurar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* N8N Dialog */}
-      <Dialog open={showN8NDialog} onOpenChange={setShowN8NDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Configurar N8N Automações</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="webhook_url">URL do Webhook N8N</Label>
-              <Input
-                id="webhook_url"
-                placeholder="https://your-n8n-instance.com/webhook/..."
-                value={settings.webhookUrl}
-                onChange={(e) => setSettings(prev => ({ ...prev, webhookUrl: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="n8n_description">Descrição da Automação</Label>
-              <Textarea
-                id="n8n_description"
-                placeholder="Descreva que tipo de automações serão executadas..."
-                rows={3}
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p>N8N permite criar workflows avançados para:</p>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Automação de emails e mensagens</li>
-                <li>Integração com múltiplos serviços</li>
-                <li>Processamento de dados</li>
-                <li>Notificações personalizadas</li>
-              </ul>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowN8NDialog(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleN8NSetup}>
-                Conectar N8N
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Stripe Dialog */}
-      <Dialog open={showStripeDialog} onOpenChange={setShowStripeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Configurar Stripe Pagamentos</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="stripe_key">Chave Pública Stripe</Label>
-              <Input
-                id="stripe_key"
-                placeholder="pk_test_..."
-                value={settings.stripeKey}
-                onChange={(e) => setSettings(prev => ({ ...prev, stripeKey: e.target.value }))}
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p>Configure o Stripe para processar pagamentos:</p>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Pagamentos únicos e recorrentes</li>
-                <li>Múltiplos métodos de pagamento</li>
-                <li>Webhook para confirmações</li>
-                <li>Dashboard de transações</li>
-              </ul>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowStripeDialog(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleStripeSetup}>
-                Configurar Stripe
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+      {/* Status das Integrações */}
       <Card>
         <CardHeader>
           <CardTitle>Status das Integrações</CardTitle>
@@ -438,32 +407,38 @@ export function IntegrationsSettings() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div className="flex items-center justify-between">
               <span>Google Calendar:</span>
-              <span className={integrations.googleCalendar ? "text-green-600" : "text-gray-500"}>
-                {integrations.googleCalendar ? "Ativo" : "Inativo"}
+              <span className={isIntegrationActive('google_calendar') ? "text-green-600" : "text-gray-500"}>
+                {isIntegrationActive('google_calendar') ? "Ativo" : "Inativo"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>WhatsApp:</span>
-              <span className={integrations.whatsapp ? "text-green-600" : "text-gray-500"}>
-                {integrations.whatsapp ? "Ativo" : "Inativo"}
+              <span className={isIntegrationActive('whatsapp_n8n') ? "text-green-600" : "text-gray-500"}>
+                {isIntegrationActive('whatsapp_n8n') ? "Ativo" : "Inativo"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>N8N:</span>
-              <span className={integrations.n8n ? "text-green-600" : "text-gray-500"}>
-                {integrations.n8n ? "Ativo" : "Inativo"}
+              <span className={isIntegrationActive('n8n_automation') ? "text-green-600" : "text-gray-500"}>
+                {isIntegrationActive('n8n_automation') ? "Ativo" : "Inativo"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>Stripe:</span>
-              <span className={integrations.stripe ? "text-green-600" : "text-gray-500"}>
-                {integrations.stripe ? "Ativo" : "Inativo"}
+              <span className={isIntegrationActive('stripe_payments') ? "text-green-600" : "text-gray-500"}>
+                {isIntegrationActive('stripe_payments') ? "Ativo" : "Inativo"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span>Email:</span>
-              <span className={integrations.email ? "text-green-600" : "text-gray-500"}>
-                {integrations.email ? "Ativo" : "Inativo"}
+              <span className={isIntegrationActive('email_marketing') ? "text-green-600" : "text-gray-500"}>
+                {isIntegrationActive('email_marketing') ? "Ativo" : "Inativo"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Redes Sociais:</span>
+              <span className={isIntegrationActive('social_media') ? "text-green-600" : "text-gray-500"}>
+                {isIntegrationActive('social_media') ? "Ativo" : "Inativo"}
               </span>
             </div>
           </div>

@@ -39,6 +39,7 @@ export function ChangePasswordForm() {
     handleSubmit,
     formState: { errors },
     reset,
+    setError
   } = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
   });
@@ -46,22 +47,28 @@ export function ChangePasswordForm() {
   const onSubmit = async (data: PasswordFormData) => {
     setIsUpdating(true);
     try {
-      // First, verify current password by trying to sign in with it
-      const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
-        email: (await supabase.auth.getUser()).data.user?.email || '',
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user?.email) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Try to create a new session with current password to verify it
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
         password: data.currentPassword,
       });
 
-      if (signInError) {
-        toast({
-          title: 'Erro',
-          description: 'Senha atual incorreta',
-          variant: 'destructive',
+      if (verifyError) {
+        setError('currentPassword', {
+          type: 'manual',
+          message: 'Senha atual incorreta'
         });
         return;
       }
 
-      // Update password
+      // Update password using the authenticated session
       const { error: updateError } = await supabase.auth.updateUser({
         password: data.newPassword
       });
@@ -77,11 +84,30 @@ export function ChangePasswordForm() {
 
       reset();
       setIsOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating password:', error);
+      
+      let errorMessage = 'Erro ao alterar senha. Tente novamente.';
+      
+      if (error?.message?.includes('invalid_credentials')) {
+        setError('currentPassword', {
+          type: 'manual',
+          message: 'Senha atual incorreta'
+        });
+        return;
+      }
+      
+      if (error?.message?.includes('same_password')) {
+        setError('newPassword', {
+          type: 'manual',
+          message: 'A nova senha deve ser diferente da atual'
+        });
+        return;
+      }
+
       toast({
         title: 'Erro',
-        description: 'Erro ao alterar senha. Tente novamente.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -97,7 +123,7 @@ export function ChangePasswordForm() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <KeyRound className="h-4 w-4" />
