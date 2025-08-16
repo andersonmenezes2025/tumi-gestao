@@ -48,6 +48,11 @@ export function ReceivableForm({ open, onOpenChange }: ReceivableFormProps) {
         payment_date: null,
       });
 
+      toast({
+        title: "Sucesso",
+        description: "Conta a receber criada com sucesso!",
+      });
+
       setFormData({
         description: '',
         amount: '',

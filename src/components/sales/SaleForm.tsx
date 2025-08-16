@@ -352,10 +352,14 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
           }
         }
 
-        // Create accounts receivable if payment method is not cash/debit/pix
-        if (paymentMethod && !['cash', 'debit', 'pix'].includes(paymentMethod.toLowerCase())) {
+        // Create accounts receivable for credit sales
+        if (paymentMethod && ['credit', 'installment', 'check'].includes(paymentMethod.toLowerCase())) {
           const dueDate = new Date();
           dueDate.setDate(dueDate.getDate() + 30); // 30 days from now
+
+          const customerName = customerType === 'existing' && selectedCustomer 
+            ? customers.find(c => c.id === selectedCustomer)?.name 
+            : customerType === 'new' ? newCustomer.name : 'Cliente não informado';
 
           const { error: receivableError } = await supabase
             .from('accounts_receivable')
@@ -365,7 +369,7 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
               sale_id: saleData.id,
               amount: getTotalAmount(),
               due_date: dueDate.toISOString().split('T')[0],
-              description: `Venda ${saleNumber} - ${customerType === 'existing' && selectedCustomer ? customers.find(c => c.id === selectedCustomer)?.name : customerType === 'new' ? newCustomer.name : 'Cliente não informado'}`,
+              description: `Venda ${saleNumber} - ${customerName}`,
               status: 'pending'
             });
 

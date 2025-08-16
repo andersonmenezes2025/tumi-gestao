@@ -50,6 +50,11 @@ export function PayableForm({ open, onOpenChange }: PayableFormProps) {
         payment_date: null,
       });
 
+      toast({
+        title: "Sucesso", 
+        description: "Conta a pagar criada com sucesso!",
+      });
+
       setFormData({
         description: '',
         amount: '',

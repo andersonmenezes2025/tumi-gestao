@@ -117,9 +117,38 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
 
       if (updateError) throw updateError;
 
+      // Create accounts payable for the purchase
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30); // 30 days default
+
+      const payableSupplierName = supplierType === 'existing' && selectedSupplierId 
+        ? suppliers.find(s => s.id === selectedSupplierId)?.name 
+        : newSupplierName || 'Fornecedor não informado';
+
+      const selectedProductData = products.find(p => p.id === selectedProduct);
+      const productName = selectedProductData?.name || 'Produto';
+      const productUnit = selectedProductData?.unit || 'un';
+
+      const { error: payableError } = await supabase
+        .from('accounts_payable')
+        .insert({
+          company_id: companyId,
+          amount: totalCost,
+          due_date: dueDate.toISOString().split('T')[0],
+          description: `Compra de ${productName} - ${quantity} ${productUnit}`,
+          supplier_name: payableSupplierName,
+          category: 'inventory',
+          status: 'pending'
+        });
+
+      if (payableError) {
+        console.warn('Erro ao criar conta a pagar:', payableError);
+        // Don't throw here, as the purchase was successful
+      }
+
       toast({
         title: "Compra registrada com sucesso!",
-        description: "O estoque e preços do produto foram atualizados automaticamente.",
+        description: "O estoque, preços e conta a pagar foram criados automaticamente.",
       });
 
       onSuccess();
