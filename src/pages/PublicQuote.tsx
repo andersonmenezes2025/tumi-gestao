@@ -132,7 +132,8 @@ export default function PublicQuote() {
         }
       }
       
-      if (field === 'quantity' || field === 'unit_price') {
+      // Calculate total price for the item (always recalculate when quantity, unit_price, or product changes)
+      if (field === 'quantity' || field === 'unit_price' || field === 'product_id') {
         newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
       }
       
