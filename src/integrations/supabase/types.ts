@@ -140,6 +140,161 @@ export type Database = {
           },
         ]
       }
+      ai_insights: {
+        Row: {
+          company_id: string
+          confidence_score: number | null
+          created_at: string
+          data: Json | null
+          description: string
+          id: string
+          priority: string | null
+          status: string | null
+          title: string
+          type: string
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          company_id: string
+          confidence_score?: number | null
+          created_at?: string
+          data?: Json | null
+          description: string
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          company_id?: string
+          confidence_score?: number | null
+          created_at?: string
+          data?: Json | null
+          description?: string
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      automation_flows: {
+        Row: {
+          actions: Json | null
+          company_id: string
+          configuration: Json | null
+          created_at: string
+          description: string | null
+          error_count: number | null
+          execution_count: number | null
+          id: string
+          is_active: boolean | null
+          last_executed_at: string | null
+          name: string
+          success_count: number | null
+          trigger_conditions: Json | null
+          type: string
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          actions?: Json | null
+          company_id: string
+          configuration?: Json | null
+          created_at?: string
+          description?: string | null
+          error_count?: number | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name: string
+          success_count?: number | null
+          trigger_conditions?: Json | null
+          type?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          actions?: Json | null
+          company_id?: string
+          configuration?: Json | null
+          created_at?: string
+          description?: string | null
+          error_count?: number | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name?: string
+          success_count?: number | null
+          trigger_conditions?: Json | null
+          type?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_flows_automation_flow_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "automation_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_logs: {
+        Row: {
+          automation_flow_id: string | null
+          company_id: string
+          completed_at: string | null
+          error_message: string | null
+          execution_id: string | null
+          execution_time_ms: number | null
+          id: string
+          result_data: Json | null
+          started_at: string
+          status: string
+          trigger_data: Json | null
+          trigger_type: string | null
+        }
+        Insert: {
+          automation_flow_id?: string | null
+          company_id: string
+          completed_at?: string | null
+          error_message?: string | null
+          execution_id?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          result_data?: Json | null
+          started_at?: string
+          status: string
+          trigger_data?: Json | null
+          trigger_type?: string | null
+        }
+        Update: {
+          automation_flow_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          error_message?: string | null
+          execution_id?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          result_data?: Json | null
+          started_at?: string
+          status?: string
+          trigger_data?: Json | null
+          trigger_type?: string | null
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
