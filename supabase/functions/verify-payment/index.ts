@@ -13,6 +13,45 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY FIX: Add authentication check before processing payment verification
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        }
+      );
+    }
+
+    // Initialize Supabase client for auth verification
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Supabase configuration missing");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify the user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        }
+      );
+    }
+
+    console.log("Payment verification requested by authenticated user:", user.id);
     const { sessionId } = await req.json();
 
     if (!sessionId) {

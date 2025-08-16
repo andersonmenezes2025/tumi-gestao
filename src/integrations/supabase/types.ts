@@ -1482,6 +1482,16 @@ export type Database = {
         Args: { company_uuid: string }
         Returns: string
       }
+      get_public_product_preview: {
+        Args: { company_uuid: string; limit_count?: number }
+        Returns: {
+          description: string
+          id: string
+          image_url: string
+          name: string
+          price: number
+        }[]
+      }
       get_public_quote_data: {
         Args: { token_param: string }
         Returns: {
