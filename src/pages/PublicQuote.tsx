@@ -94,8 +94,6 @@ export default function PublicQuote() {
   const fetchProducts = async () => {
     if (!companyId) return;
     
-    console.log('PublicQuote: Buscando produtos para companyId:', companyId);
-    
     try {
       const { data, error } = await supabase
         .from('products')
@@ -104,12 +102,7 @@ export default function PublicQuote() {
         .eq('active', true)
         .order('name');
 
-      if (error) {
-        console.error('PublicQuote: Erro ao buscar produtos:', error);
-        throw error;
-      }
-      
-      console.log('PublicQuote: Produtos encontrados:', data);
+      if (error) throw error;
       setProducts(data || []);
     } catch (error: any) {
       console.error('Erro ao buscar produtos:', error);
@@ -376,14 +369,8 @@ export default function PublicQuote() {
                     Selecione os Produtos
                   </CardTitle>
                   <p className="text-sm text-gray-600">
-                    Escolha os produtos para seu orçamento ({products.length} produtos encontrados)
+                    Escolha os produtos para seu orçamento
                   </p>
-                  {/* Debug: mostrar produtos carregados */}
-                  {products.length === 0 && (
-                    <div className="text-red-500 text-sm">
-                      Nenhum produto encontrado. Verificando conexão com o banco...
-                    </div>
-                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {items.map((item, index) => (
