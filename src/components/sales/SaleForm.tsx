@@ -66,6 +66,14 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
     }
   }, [open, companyId]);
 
+  useEffect(() => {
+    if (open && sale) {
+      loadSaleData();
+    } else if (open && !sale) {
+      resetForm();
+    }
+  }, [open, sale]);
+
   const fetchCustomers = async () => {
     if (!companyId) return;
     
@@ -181,75 +189,173 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
         customerId = customerData.id;
       }
 
-      // Generate sale number
-      const { data: saleNumber, error: numberError } = await supabase
-        .rpc('generate_sale_number', { company_uuid: companyId });
+      if (sale) {
+        // Update existing sale
+        const { error: saleError } = await supabase
+          .from('sales')
+          .update({
+            customer_id: customerId || null,
+            total_amount: getTotalAmount(),
+            payment_method: paymentMethod,
+            notes: notes || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sale.id);
 
-      if (numberError) throw numberError;
+        if (saleError) throw saleError;
 
-      // Create sale
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert([{
-          company_id: companyId,
-          customer_id: customerId || null,
-          sale_number: saleNumber,
-          total_amount: getTotalAmount(),
-          payment_method: paymentMethod,
-          payment_status: 'completed',
-          status: 'completed',
-          notes: notes || null
-        }])
-        .select()
-        .single();
-
-      if (saleError) throw saleError;
-
-      // Create sale items and update stock
-      for (const item of saleItems) {
-        const { error: itemError } = await supabase
+        // Delete existing sale items
+        const { error: deleteItemsError } = await supabase
           .from('sale_items')
-          .insert({
-            sale_id: saleData.id,
-            product_id: item.product_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            discount_percentage: item.discount_percentage,
-            total_price: item.total_price
-          });
+          .delete()
+          .eq('sale_id', sale.id);
 
-        if (itemError) throw itemError;
+        if (deleteItemsError) throw deleteItemsError;
 
-        // Update product stock
-        const product = products.find(p => p.id === item.product_id);
-        if (product && product.stock_quantity !== null) {
-          const newStock = Math.max(0, product.stock_quantity - item.quantity);
-          
-          const { error: stockError } = await supabase
-            .from('products')
-            .update({ stock_quantity: newStock })
-            .eq('id', item.product_id);
+        // Insert updated sale items
+        for (const item of saleItems) {
+          const { error: itemError } = await supabase
+            .from('sale_items')
+            .insert({
+              sale_id: sale.id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              discount_percentage: item.discount_percentage,
+              total_price: item.total_price
+            });
 
-          if (stockError) throw stockError;
+          if (itemError) throw itemError;
         }
-      }
 
-      toast({
-        title: "Venda realizada com sucesso!",
-        description: `Venda ${saleNumber} foi registrada.`,
-      });
+        toast({
+          title: "Venda atualizada com sucesso!",
+          description: `Venda ${sale.sale_number} foi atualizada.`,
+        });
+
+      } else {
+        // Create new sale
+        // Generate sale number
+        const { data: saleNumber, error: numberError } = await supabase
+          .rpc('generate_sale_number', { company_uuid: companyId });
+
+        if (numberError) throw numberError;
+
+        // Create sale
+        const { data: saleData, error: saleError } = await supabase
+          .from('sales')
+          .insert([{
+            company_id: companyId,
+            customer_id: customerId || null,
+            sale_number: saleNumber,
+            total_amount: getTotalAmount(),
+            payment_method: paymentMethod,
+            payment_status: 'completed',
+            status: 'completed',
+            notes: notes || null
+          }])
+          .select()
+          .single();
+
+        if (saleError) throw saleError;
+
+        // Create sale items and update stock
+        for (const item of saleItems) {
+          const { error: itemError } = await supabase
+            .from('sale_items')
+            .insert({
+              sale_id: saleData.id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              discount_percentage: item.discount_percentage,
+              total_price: item.total_price
+            });
+
+          if (itemError) throw itemError;
+
+          // Update product stock
+          const product = products.find(p => p.id === item.product_id);
+          if (product && product.stock_quantity !== null) {
+            const newStock = Math.max(0, product.stock_quantity - item.quantity);
+            
+            const { error: stockError } = await supabase
+              .from('products')
+              .update({ stock_quantity: newStock })
+              .eq('id', item.product_id);
+
+            if (stockError) throw stockError;
+          }
+        }
+
+        toast({
+          title: "Venda realizada com sucesso!",
+          description: `Venda ${saleNumber} foi registrada.`,
+        });
+      }
 
       onSuccess();
       onOpenChange(false);
       resetForm();
     } catch (error: any) {
       toast({
-        title: "Erro ao realizar venda",
+        title: sale ? "Erro ao atualizar venda" : "Erro ao realizar venda",
         description: error.message,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSaleData = async () => {
+    if (!sale) return;
+    
+    try {
+      // Load sale items
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('sale_items')
+        .select(`
+          *,
+          products (
+            name,
+            unit
+          )
+        `)
+        .eq('sale_id', sale.id);
+
+      if (itemsError) throw itemsError;
+
+      // Set sale items
+      const formattedItems: SaleItem[] = itemsData.map(item => ({
+        product_id: item.product_id,
+        product_name: (item as any).products?.name || 'Produto não encontrado',
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount_percentage: item.discount_percentage || 0,
+        total_price: item.total_price
+      }));
+      
+      setSaleItems(formattedItems);
+      
+      // Set customer info
+      if (sale.customer_id) {
+        setCustomerType('existing');
+        setSelectedCustomer(sale.customer_id);
+      } else {
+        setCustomerType('none');
+      }
+      
+      // Set other sale data
+      setPaymentMethod(sale.payment_method || 'money');
+      setNotes(sale.notes || '');
+      
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar dados da venda",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -267,7 +373,7 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Venda</DialogTitle>
+          <DialogTitle>{sale ? `Editar Venda #${sale.sale_number}` : 'Nova Venda'}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -504,7 +610,12 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
               type="submit" 
               disabled={loading || saleItems.length === 0}
             >
-              {loading ? 'Salvando...' : 'Finalizar Venda'}
+              {loading 
+                ? 'Salvando...' 
+                : sale 
+                  ? 'Atualizar Venda' 
+                  : 'Finalizar Venda'
+              }
             </Button>
           </div>
         </form>

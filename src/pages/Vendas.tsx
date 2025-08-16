@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Filter, Eye, Edit, Trash, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { SaleForm } from '@/components/sales/SaleForm';
@@ -13,10 +15,16 @@ import { Tables } from '@/integrations/supabase/types';
 
 type Sale = Tables<'sales'>;
 type Customer = Tables<'customers'>;
+type SaleItem = Tables<'sale_items'>;
 
 export default function Vendas() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSaleForm, setShowSaleForm] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [viewingSale, setViewingSale] = useState<Sale | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
@@ -81,18 +89,42 @@ export default function Vendas() {
     setShowSaleForm(true);
   };
 
-  const handleViewSale = (sale: Sale) => {
-    toast({
-      title: "Visualizar Venda",
-      description: `Visualizando venda ${sale.sale_number}`,
-    });
+  const fetchSaleItems = async (saleId: string) => {
+    setLoadingItems(true);
+    try {
+      const { data, error } = await supabase
+        .from('sale_items')
+        .select(`
+          *,
+          products (
+            name,
+            unit
+          )
+        `)
+        .eq('sale_id', saleId);
+
+      if (error) throw error;
+      setSaleItems(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar itens da venda",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
+  const handleViewSale = async (sale: Sale) => {
+    setViewingSale(sale);
+    setShowViewDialog(true);
+    await fetchSaleItems(sale.id);
   };
 
   const handleEditSale = (sale: Sale) => {
-    toast({
-      title: "Editar Venda",
-      description: `Editando venda ${sale.sale_number}`,
-    });
+    setEditingSale(sale);
+    setShowSaleForm(true);
   };
 
   const handleDeleteSale = async (sale: Sale) => {
@@ -332,9 +364,157 @@ export default function Vendas() {
       {/* Sale Form Dialog */}
       <SaleForm
         open={showSaleForm}
-        onOpenChange={setShowSaleForm}
-        onSuccess={fetchSales}
+        onOpenChange={(open) => {
+          setShowSaleForm(open);
+          if (!open) setEditingSale(null);
+        }}
+        onSuccess={() => {
+          fetchSales();
+          setEditingSale(null);
+        }}
+        sale={editingSale}
       />
+
+      {/* View Sale Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              Detalhes da Venda #{viewingSale?.sale_number}
+              <Button variant="ghost" size="sm" onClick={() => setShowViewDialog(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {viewingSale && (
+            <div className="space-y-6">
+              {/* Informações da Venda */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Cliente</Label>
+                  <p className="font-medium">{getCustomerName(viewingSale.customer_id)}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Badge variant={getStatusBadge(viewingSale.status || 'pending').variant}>
+                    {getStatusBadge(viewingSale.status || 'pending').label}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Pagamento</Label>
+                  <Badge variant={getPaymentStatusBadge(viewingSale.payment_status || 'pending').variant}>
+                    {getPaymentStatusBadge(viewingSale.payment_status || 'pending').label}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Data</Label>
+                  <p className="font-medium">
+                    {new Date(viewingSale.created_at || '').toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+
+              {viewingSale.notes && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Observações</Label>
+                  <p className="p-3 bg-muted rounded-md">{viewingSale.notes}</p>
+                </div>
+              )}
+
+              {/* Itens da Venda */}
+              <div className="space-y-3">
+                <Label className="text-lg font-semibold">Itens da Venda</Label>
+                {loadingItems ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-3 font-medium">Produto</th>
+                          <th className="text-left p-3 font-medium">Quantidade</th>
+                          <th className="text-left p-3 font-medium">Preço Unit.</th>
+                          <th className="text-left p-3 font-medium">Desconto</th>
+                          <th className="text-left p-3 font-medium">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {saleItems.map((item) => (
+                          <tr key={item.id} className="border-b">
+                            <td className="p-3">
+                              {(item as any).products?.name || 'Produto não encontrado'}
+                            </td>
+                            <td className="p-3">
+                              {item.quantity} {(item as any).products?.unit || 'un'}
+                            </td>
+                            <td className="p-3">
+                              R$ {item.unit_price.toFixed(2).replace('.', ',')}
+                            </td>
+                            <td className="p-3">
+                              {item.discount_percentage || 0}%
+                            </td>
+                            <td className="p-3 font-medium">
+                              R$ {item.total_price.toFixed(2).replace('.', ',')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Totais */}
+              <div className="border-t pt-4">
+                <div className="flex justify-end space-y-2">
+                  <div className="text-right space-y-1">
+                    <div className="flex justify-between min-w-[200px]">
+                      <span>Subtotal:</span>
+                      <span>R$ {(viewingSale.total_amount - (viewingSale.tax_amount || 0)).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    {viewingSale.discount_amount && viewingSale.discount_amount > 0 && (
+                      <div className="flex justify-between text-red-600">
+                        <span>Desconto:</span>
+                        <span>- R$ {viewingSale.discount_amount.toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    )}
+                    {viewingSale.tax_amount && viewingSale.tax_amount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Impostos:</span>
+                        <span>R$ {viewingSale.tax_amount.toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-lg font-bold border-t pt-2">
+                      <span>Total:</span>
+                      <span>R$ {viewingSale.total_amount.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div className="flex justify-end gap-3 border-t pt-4">
+                <Button variant="outline" onClick={() => setShowViewDialog(false)}>
+                  Fechar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowViewDialog(false);
+                    handleEditSale(viewingSale);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Venda
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
