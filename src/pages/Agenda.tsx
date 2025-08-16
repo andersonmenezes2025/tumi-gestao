@@ -6,52 +6,39 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Plus, Clock, Users, MapPin } from 'lucide-react';
+import { Calendar, Plus, Clock, Users, MapPin, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
+import { useAgenda } from '@/hooks/useAgenda';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function Agenda() {
   const { toast } = useToast();
   const { hasCompany, company } = useCompany();
+  const { 
+    events, 
+    loading, 
+    createEvent, 
+    getTodayEvents, 
+    getEventsByStatus 
+  } = useAgenda();
   
   const [showNewEventDialog, setShowNewEventDialog] = useState(false);
-  const [events] = useState([
-    {
-      id: '1',
-      title: 'Reunião com Cliente - João Silva',
-      description: 'Apresentação de proposta comercial',
-      date: new Date().toISOString().split('T')[0],
-      time: '14:00',
-      duration: '1h',
-      type: 'meeting',
-      status: 'confirmed',
-      location: 'Escritório Central',
-    },
-    {
-      id: '2',
-      title: 'Follow-up Vendas',
-      description: 'Acompanhar propostas pendentes',
-      date: new Date().toISOString().split('T')[0],
-      time: '16:30',
-      duration: '30min',
-      type: 'call',
-      status: 'pending',
-      location: 'Remoto',
-    }
-  ]);
+  const [saving, setSaving] = useState(false);
 
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
     date: '',
     time: '',
-    duration: '1h',
+    duration: '1',
     type: 'meeting',
     location: '',
   });
 
-  const handleSaveEvent = () => {
+  const handleSaveEvent = async () => {
     if (!newEvent.title || !newEvent.date || !newEvent.time) {
       toast({
         title: "Erro",
@@ -61,21 +48,36 @@ export default function Agenda() {
       return;
     }
 
-    toast({
-      title: "Agendamento Criado",
-      description: `Evento "${newEvent.title}" agendado com sucesso.`,
-    });
-    
-    setShowNewEventDialog(false);
-    setNewEvent({
-      title: '',
-      description: '',
-      date: '',
-      time: '',
-      duration: '1h',
-      type: 'meeting',
-      location: '',
-    });
+    setSaving(true);
+    try {
+      const startDateTime = new Date(`${newEvent.date}T${newEvent.time}:00`);
+      const endDateTime = new Date(startDateTime.getTime() + (parseInt(newEvent.duration) * 60 * 60 * 1000));
+
+      await createEvent({
+        title: newEvent.title,
+        description: newEvent.description,
+        start_date: startDateTime.toISOString(),
+        end_date: endDateTime.toISOString(),
+        location: newEvent.location,
+        type: newEvent.type,
+        status: 'scheduled',
+      });
+
+      setShowNewEventDialog(false);
+      setNewEvent({
+        title: '',
+        description: '',
+        date: '',
+        time: '',
+        duration: '1',
+        type: 'meeting',
+        location: '',
+      });
+    } catch (error) {
+      // Error is handled by the hook
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getEventTypeBadge = (type: string) => {
@@ -97,7 +99,15 @@ export default function Agenda() {
     return statusMap[status as keyof typeof statusMap] || { label: status, variant: 'outline' as const };
   };
 
-  const todayEvents = events.filter(event => event.date === new Date().toISOString().split('T')[0]);
+  const todayEvents = getTodayEvents();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   if (!hasCompany) {
     return (
@@ -155,7 +165,7 @@ export default function Agenda() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {events.filter(e => e.status === 'confirmed').length}
+              {getEventsByStatus('confirmed').length}
             </div>
             <p className="text-xs text-muted-foreground">Eventos confirmados</p>
           </CardContent>
@@ -166,7 +176,7 @@ export default function Agenda() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {events.filter(e => e.status === 'pending').length}
+              {getEventsByStatus('pending').length + getEventsByStatus('scheduled').length}
             </div>
             <p className="text-xs text-muted-foreground">Aguardando confirmação</p>
           </CardContent>
@@ -191,8 +201,8 @@ export default function Agenda() {
               </div>
             ) : (
               todayEvents.map((event) => {
-                const typeBadge = getEventTypeBadge(event.type);
-                const statusBadge = getStatusBadge(event.status);
+                const typeBadge = getEventTypeBadge(event.type || 'meeting');
+                const statusBadge = getStatusBadge(event.status || 'scheduled');
                 
                 return (
                   <div key={event.id} className="p-4 border rounded-lg">
@@ -209,12 +219,14 @@ export default function Agenda() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {event.time} ({event.duration})
+                        {format(new Date(event.start_date), 'HH:mm', { locale: ptBR })} - {format(new Date(event.end_date), 'HH:mm', { locale: ptBR })}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {event.location}
-                      </div>
+                      {event.location && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {event.location}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -250,7 +262,7 @@ export default function Agenda() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="date">Data *</Label>
                 <Input
@@ -269,22 +281,57 @@ export default function Agenda() {
                   onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
                 />
               </div>
+              <div>
+                <Label htmlFor="duration">Duração (horas)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  value={newEvent.duration}
+                  onChange={(e) => setNewEvent({ ...newEvent, duration: e.target.value })}
+                  placeholder="1"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="location">Local</Label>
-              <Input
-                id="location"
-                value={newEvent.location}
-                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                placeholder="Ex: Escritório Central"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="type">Tipo</Label>
+                <Select value={newEvent.type} onValueChange={(value) => setNewEvent({ ...newEvent, type: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meeting">Reunião</SelectItem>
+                    <SelectItem value="call">Ligação</SelectItem>
+                    <SelectItem value="delivery">Entrega</SelectItem>
+                    <SelectItem value="other">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="location">Local</Label>
+                <Input
+                  id="location"
+                  value={newEvent.location}
+                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                  placeholder="Ex: Escritório Central"
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setShowNewEventDialog(false)}>
+              <Button variant="outline" onClick={() => setShowNewEventDialog(false)} disabled={saving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSaveEvent}>
-                Salvar
+              <Button onClick={handleSaveEvent} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
               </Button>
             </div>
           </div>
