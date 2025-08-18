@@ -8,6 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useCompany } from '@/hooks/useCompany';
+import { N8NConfigDialog } from './N8NConfigDialog';
+import { StripeConfigDialog } from './StripeConfigDialog';
+import { EmailMarketingConfigDialog } from './EmailMarketingConfigDialog';
+import { WhatsAppConfigDialog } from './WhatsAppConfigDialog';
 import { 
   Calendar, 
   MessageSquare, 
@@ -33,6 +37,11 @@ export function IntegrationsSettings() {
   } = useIntegrations();
 
   const [showGoogleDialog, setShowGoogleDialog] = useState(false);
+  const [showN8NDialog, setShowN8NDialog] = useState(false);
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [showStripeDialog, setShowStripeDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [n8nDialogType, setN8nDialogType] = useState<'n8n_automation' | 'whatsapp_n8n'>('n8n_automation');
   const [socialSettings, setSocialSettings] = useState({
     facebookUrl: '',
     instagramUrl: ''
@@ -62,9 +71,34 @@ export function IntegrationsSettings() {
           active: enabled
         });
       } else if (enabled) {
-        // Open specific configuration dialog for some integrations
+        // Open specific configuration dialog for integrations
         if (type === 'google_calendar') {
           setShowGoogleDialog(true);
+          setIsUpdating(false);
+          return;
+        }
+        
+        if (type === 'n8n_automation') {
+          setN8nDialogType('n8n_automation');
+          setShowN8NDialog(true);
+          setIsUpdating(false);
+          return;
+        }
+        
+        if (type === 'whatsapp_n8n') {
+          setShowWhatsAppDialog(true);
+          setIsUpdating(false);
+          return;
+        }
+        
+        if (type === 'stripe_payments') {
+          setShowStripeDialog(true);
+          setIsUpdating(false);
+          return;
+        }
+        
+        if (type === 'email_marketing') {
+          setShowEmailDialog(true);
           setIsUpdating(false);
           return;
         }
@@ -227,10 +261,11 @@ export function IntegrationsSettings() {
             </CardDescription>
             <Button 
               variant="outline" 
-              size="sm" 
-              disabled
+              size="sm"
+              onClick={() => setShowWhatsAppDialog(true)}
+              disabled={isUpdating}
             >
-              Configurar
+              {isIntegrationActive('whatsapp_n8n') ? 'Configurado' : 'Configurar'}
             </Button>
           </CardContent>
         </Card>
@@ -254,10 +289,14 @@ export function IntegrationsSettings() {
             </CardDescription>
             <Button 
               variant="outline" 
-              size="sm" 
-              disabled
+              size="sm"
+              onClick={() => {
+                setN8nDialogType('n8n_automation');
+                setShowN8NDialog(true);
+              }}
+              disabled={isUpdating}
             >
-              Configurar
+              {isIntegrationActive('n8n_automation') ? 'Configurado' : 'Configurar'}
             </Button>
           </CardContent>
         </Card>
@@ -281,10 +320,11 @@ export function IntegrationsSettings() {
             </CardDescription>
             <Button 
               variant="outline" 
-              size="sm" 
-              disabled
+              size="sm"
+              onClick={() => setShowStripeDialog(true)}
+              disabled={isUpdating}
             >
-              Configurar
+              {isIntegrationActive('stripe_payments') ? 'Configurado' : 'Configurar'}
             </Button>
           </CardContent>
         </Card>
@@ -306,8 +346,13 @@ export function IntegrationsSettings() {
             <CardDescription className="mb-4">
               Configure automações de email marketing
             </CardDescription>
-            <Button variant="outline" size="sm" disabled>
-              Em Breve
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowEmailDialog(true)}
+              disabled={isUpdating}
+            >
+              {isIntegrationActive('email_marketing') ? 'Configurado' : 'Configurar'}
             </Button>
           </CardContent>
         </Card>
@@ -394,6 +439,31 @@ export function IntegrationsSettings() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* N8N Configuration Dialog */}
+      <N8NConfigDialog
+        open={showN8NDialog}
+        onOpenChange={setShowN8NDialog}
+        type={n8nDialogType}
+      />
+
+      {/* WhatsApp Configuration Dialog */}
+      <WhatsAppConfigDialog
+        open={showWhatsAppDialog}
+        onOpenChange={setShowWhatsAppDialog}
+      />
+
+      {/* Stripe Configuration Dialog */}
+      <StripeConfigDialog
+        open={showStripeDialog}
+        onOpenChange={setShowStripeDialog}
+      />
+
+      {/* Email Marketing Configuration Dialog */}
+      <EmailMarketingConfigDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+      />
 
       {/* Status das Integrações */}
       <Card>
