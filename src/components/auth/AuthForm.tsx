@@ -133,13 +133,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: sanitizeInput(email),
         password,
-        options: {
-          data: {
-            full_name: sanitizeInput(fullName),
-            company_name: sanitizeInput(companyName),
-          },
-          emailRedirectTo: `${window.location.origin}/`
-        }
+        fullName: sanitizeInput(fullName)
       });
 
       if (authError) {

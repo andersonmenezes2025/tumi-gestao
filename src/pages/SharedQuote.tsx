@@ -32,8 +32,7 @@ export default function SharedQuote() {
     try {
       // Fetch secure quote data using security definer function
       const { data: quoteData, error: quoteError } = await supabase
-        .rpc('get_public_quote_data', { token_param: token })
-        .maybeSingle();
+        .rpc('get_public_quote_data', { token_param: token });
 
       console.log('SharedQuote: Resultado da busca do orçamento:', { quoteData, quoteError });
 

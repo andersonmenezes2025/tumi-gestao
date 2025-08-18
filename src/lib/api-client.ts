@@ -23,6 +23,16 @@ class QueryBuilder {
     return this;
   }
 
+  gte(column: string, value: any) {
+    this._filters[`${column}_gte`] = value;
+    return this;
+  }
+
+  lte(column: string, value: any) {
+    this._filters[`${column}_lte`] = value;
+    return this;
+  }
+
   order(column: string, options: any = {}) {
     this._order = options.ascending === false ? `${column} DESC` : `${column} ASC`;
     return this;
@@ -47,25 +57,15 @@ class QueryBuilder {
 
   single() {
     this._single = true;
-    return this;
+    return this._execute();
   }
 
   maybeSingle() {
     this._single = true;
-    return this;
+    return this._execute();
   }
 
-  async then(resolve?: any, reject?: any) {
-    try {
-      const result = await this._execute();
-      if (resolve) return resolve(result);
-      return result;
-    } catch (error) {
-      if (reject) return reject(error);
-      throw error;
-    }
-  }
-
+  // Fazer isso retornar uma Promise real
   private async _execute() {
     let endpoint = `/data/${this.table}`;
     const params = new URLSearchParams();
@@ -98,6 +98,15 @@ class QueryBuilder {
       return { data: null, error };
     }
   }
+
+  // Método then que retorna Promise real
+  then<T>(onfulfilled?: (value: any) => T | PromiseLike<T>, onrejected?: (reason: any) => T | PromiseLike<T>): Promise<T> {
+    return this._execute().then(onfulfilled, onrejected);
+  }
+
+  catch(onrejected?: (reason: any) => any): Promise<any> {
+    return this._execute().catch(onrejected);
+  }
 }
 
 class InsertBuilder {
@@ -120,18 +129,7 @@ class InsertBuilder {
 
   single() {
     this._single = true;
-    return this;
-  }
-
-  async then(resolve?: any, reject?: any) {
-    try {
-      const result = await this._execute();
-      if (resolve) return resolve(result);
-      return result;
-    } catch (error) {
-      if (reject) return reject(error);
-      throw error;
-    }
+    return this._execute();
   }
 
   private async _execute() {
@@ -144,6 +142,14 @@ class InsertBuilder {
     } catch (error) {
       return { data: null, error };
     }
+  }
+
+  then<T>(onfulfilled?: (value: any) => T | PromiseLike<T>, onrejected?: (reason: any) => T | PromiseLike<T>): Promise<T> {
+    return this._execute().then(onfulfilled, onrejected);
+  }
+
+  catch(onrejected?: (reason: any) => any): Promise<any> {
+    return this._execute().catch(onrejected);
   }
 }
 
@@ -173,18 +179,7 @@ class UpdateBuilder {
 
   single() {
     this._single = true;
-    return this;
-  }
-
-  async then(resolve?: any, reject?: any) {
-    try {
-      const result = await this._execute();
-      if (resolve) return resolve(result);
-      return result;
-    } catch (error) {
-      if (reject) return reject(error);
-      throw error;
-    }
+    return this._execute();
   }
 
   private async _execute() {
@@ -198,6 +193,14 @@ class UpdateBuilder {
     } catch (error) {
       return { data: null, error };
     }
+  }
+
+  then<T>(onfulfilled?: (value: any) => T | PromiseLike<T>, onrejected?: (reason: any) => T | PromiseLike<T>): Promise<T> {
+    return this._execute().then(onfulfilled, onrejected);
+  }
+
+  catch(onrejected?: (reason: any) => any): Promise<any> {
+    return this._execute().catch(onrejected);
   }
 }
 
@@ -216,17 +219,6 @@ class DeleteBuilder {
     return this;
   }
 
-  async then(resolve?: any, reject?: any) {
-    try {
-      const result = await this._execute();
-      if (resolve) return resolve(result);
-      return result;
-    } catch (error) {
-      if (reject) return reject(error);
-      throw error;
-    }
-  }
-
   private async _execute() {
     try {
       const id = this._filters.id || Object.values(this._filters)[0];
@@ -237,6 +229,14 @@ class DeleteBuilder {
     } catch (error) {
       return { data: null, error };
     }
+  }
+
+  then<T>(onfulfilled?: (value: any) => T | PromiseLike<T>, onrejected?: (reason: any) => T | PromiseLike<T>): Promise<T> {
+    return this._execute().then(onfulfilled, onrejected);
+  }
+
+  catch(onrejected?: (reason: any) => any): Promise<any> {
+    return this._execute().catch(onrejected);
   }
 }
 
@@ -345,9 +345,9 @@ class ApiClient {
     },
 
     onAuthStateChange: (callback: (event: string, session: any) => void) => {
-      // Simular o listener do Supabase
+      // Criar uma função que mantém o contexto correto
       const checkAuth = async () => {
-        const { data } = await this.getSession();
+        const { data } = await this.auth.getSession();
         callback('INITIAL_SESSION', data.session);
       };
 
