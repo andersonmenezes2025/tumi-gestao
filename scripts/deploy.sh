@@ -82,12 +82,31 @@ else
     exit 1
 fi
 
-# Verificar se a API está respondendo
+# Health checks mais robustos
+echo "🏥 Executando health checks..."
 sleep 3
-if curl -f http://localhost:3001/api/health > /dev/null 2>&1; then
-    echo "✅ API respondendo corretamente!"
+
+# Verificar API Health
+for i in {1..5}; do
+    if curl -f http://localhost:3001/api/health > /dev/null 2>&1; then
+        echo "✅ API respondendo corretamente!"
+        break
+    else
+        echo "⏳ Tentativa $i/5 - API ainda não responde, aguardando..."
+        sleep 2
+        if [ $i -eq 5 ]; then
+            echo "❌ API não está respondendo após 5 tentativas"
+            echo "📋 Últimos logs:"
+            pm2 logs tumi-gestao-api --lines 10 --nostream
+        fi
+    fi
+done
+
+# Verificar conectividade do banco
+if curl -f http://localhost:3001/api/health/db > /dev/null 2>&1; then
+    echo "✅ Conexão com banco de dados OK!"
 else
-    echo "⚠️  API não está respondendo - verificar logs"
+    echo "⚠️  Problemas na conexão com o banco - verificar configuração"
 fi
 
 # ===== 9. RECARREGAR NGINX =====
