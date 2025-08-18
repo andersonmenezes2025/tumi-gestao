@@ -1,0 +1,135 @@
+#!/bin/bash
+
+# Script de deploy para o Sistema de Gestão Tumi Hortifruti
+# Executa após o setup da VPS
+
+set -e
+
+APP_DIR="/var/www/tumi/gestao"
+BACKUP_DIR="/var/backups/tumi-gestao/deploy-$(date +%Y%m%d_%H%M%S)"
+
+echo "🚀 Iniciando deploy do Sistema de Gestão..."
+
+# ===== 1. BACKUP ANTES DO DEPLOY =====
+if [ -d "$APP_DIR/dist" ]; then
+    echo "💾 Fazendo backup da versão atual..."
+    mkdir -p $BACKUP_DIR
+    cp -r $APP_DIR/dist $BACKUP_DIR/
+    cp $APP_DIR/package.json $BACKUP_DIR/ 2>/dev/null || true
+    echo "✅ Backup salvo em: $BACKUP_DIR"
+fi
+
+# ===== 2. PARAR A APLICAÇÃO =====
+echo "⏹️  Parando aplicação..."
+pm2 stop tumi-gestao-api 2>/dev/null || true
+
+# ===== 3. INSTALAR DEPENDÊNCIAS =====
+echo "📦 Instalando dependências..."
+cd $APP_DIR
+npm ci --production=false
+
+# ===== 4. BUILD DA APLICAÇÃO =====
+echo "🔨 Fazendo build da aplicação..."
+npm run build
+npm run build:server
+
+# ===== 5. CONFIGURAR VARIÁVEIS DE AMBIENTE =====
+echo "⚙️  Configurando ambiente de produção..."
+tee $APP_DIR/.env > /dev/null <<'EOF'
+NODE_ENV=production
+PORT=3001
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=tumigestao_db
+DB_USER=tumigestao_user
+DB_PASSWORD=TumiGest@o2024!Secure
+JWT_SECRET=tumi-gestao-jwt-secret-production-2024-secure
+PRODUCTION_URL=https://tumihortifruti.com.br
+EOF
+
+# ===== 6. AJUSTAR PERMISSÕES =====
+echo "🔒 Ajustando permissões..."
+sudo chown -R www-data:www-data $APP_DIR
+sudo chmod -R 755 $APP_DIR
+sudo chmod 600 $APP_DIR/.env
+
+# ===== 7. INICIAR/REINICIAR APLICAÇÃO =====
+echo "▶️  Iniciando aplicação..."
+
+# Verificar se PM2 já tem a aplicação
+if pm2 describe tumi-gestao-api > /dev/null 2>&1; then
+    echo "🔄 Reiniciando aplicação existente..."
+    pm2 restart tumi-gestao-api
+else
+    echo "🆕 Iniciando nova aplicação..."
+    pm2 start ecosystem.config.js
+fi
+
+# Salvar configuração do PM2
+pm2 save
+
+# ===== 8. VERIFICAR STATUS =====
+echo "🔍 Verificando status da aplicação..."
+sleep 5
+
+# Verificar se a aplicação está rodando
+if pm2 describe tumi-gestao-api | grep -q "online"; then
+    echo "✅ Aplicação rodando com sucesso!"
+else
+    echo "❌ Erro ao iniciar a aplicação"
+    echo "📋 Logs de erro:"
+    pm2 logs tumi-gestao-api --lines 20
+    exit 1
+fi
+
+# Verificar se a API está respondendo
+sleep 3
+if curl -f http://localhost:3001/api/health > /dev/null 2>&1; then
+    echo "✅ API respondendo corretamente!"
+else
+    echo "⚠️  API não está respondendo - verificar logs"
+fi
+
+# ===== 9. RECARREGAR NGINX =====
+echo "🌐 Recarregando Nginx..."
+sudo nginx -t && sudo systemctl reload nginx
+
+# ===== 10. CONFIGURAR SSL (se ainda não estiver configurado) =====
+if ! sudo certbot certificates 2>/dev/null | grep -q "tumihortifruti.com.br"; then
+    echo "🔐 Configurando SSL com Let's Encrypt..."
+    echo "Execute manualmente: sudo certbot --nginx -d tumihortifruti.com.br"
+fi
+
+# ===== 11. LIMPEZA =====
+echo "🧹 Limpeza pós-deploy..."
+# Remover arquivos temporários
+rm -rf $APP_DIR/node_modules/.cache 2>/dev/null || true
+
+# ===== 12. RESUMO =====
+echo ""
+echo "🎉 Deploy concluído com sucesso!"
+echo ""
+echo "📊 STATUS DA APLICAÇÃO:"
+pm2 status tumi-gestao-api
+echo ""
+echo "📋 INFORMAÇÕES:"
+echo "   🌐 URL: https://tumihortifruti.com.br/gestao"
+echo "   👤 Login: admin@tumihortifruti.com.br"
+echo "   🔑 Senha: admin123"
+echo "   📁 Diretório: $APP_DIR"
+echo "   💾 Backup: $BACKUP_DIR"
+echo ""
+echo "📖 COMANDOS ÚTEIS:"
+echo "   pm2 status                    # Status das aplicações"
+echo "   pm2 logs tumi-gestao-api      # Ver logs em tempo real"
+echo "   pm2 restart tumi-gestao-api   # Reiniciar aplicação"
+echo "   pm2 reload tumi-gestao-api    # Reload sem downtime"
+echo ""
+echo "🔍 MONITORAMENTO:"
+echo "   tail -f /var/log/tumi-gestao/combined.log"
+echo "   systemctl status nginx"
+echo ""
+
+# Mostrar logs recentes
+echo "📄 LOGS RECENTES (últimas 10 linhas):"
+pm2 logs tumi-gestao-api --lines 10 --nostream

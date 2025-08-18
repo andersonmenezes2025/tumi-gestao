@@ -33,6 +33,18 @@ class QueryBuilder {
     return this;
   }
 
+  insert(data: any) {
+    return new InsertBuilder(this.table, this.client, data);
+  }
+
+  update(data: any) {
+    return new UpdateBuilder(this.table, this.client, data);
+  }
+
+  delete() {
+    return new DeleteBuilder(this.table, this.client);
+  }
+
   single() {
     this._single = true;
     return this;
@@ -371,6 +383,18 @@ class ApiClient {
   // Database methods
   from(table: string) {
     return new QueryBuilder(table, this);
+  }
+
+  insert(table: string, data: any) {
+    return new InsertBuilder(table, this, data);
+  }
+
+  update(table: string, data: any) {
+    return new UpdateBuilder(table, this, data);
+  }
+
+  delete(table: string) {
+    return new DeleteBuilder(table, this);
   }
 
   // Storage placeholder
