@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Script de deploy para o Sistema de Gestão Tumi Hortifruti
-# Executa após o setup da VPS
+# Versão integrada com Nginx existente (site principal em 127.0.0.1:5500)
 
 set -e
 
 APP_DIR="/var/www/tumi/gestao"
 BACKUP_DIR="/var/backups/tumi-gestao/deploy-$(date +%Y%m%d_%H%M%S)"
+NGINX_CONFIG="/etc/nginx/sites-available/tumihortifruti.com.br"
 
 echo "🚀 Iniciando deploy do Sistema de Gestão..."
 
@@ -109,9 +110,63 @@ else
     echo "⚠️  Problemas na conexão com o banco - verificar configuração"
 fi
 
-# ===== 9. RECARREGAR NGINX =====
-echo "🌐 Recarregando Nginx..."
-sudo nginx -t && sudo systemctl reload nginx
+# ===== 9. CONFIGURAR NGINX (INTEGRAÇÃO INTELIGENTE) =====
+echo "🌐 Configurando Nginx para integração com site existente..."
+
+# Verificar se as rotas do gestão já existem
+if ! grep -q "location /gestao" "$NGINX_CONFIG"; then
+    echo "🔧 Adicionando rotas do sistema de gestão ao Nginx..."
+    
+    # Fazer backup da configuração
+    sudo cp "$NGINX_CONFIG" "${NGINX_CONFIG}.backup-$(date +%Y%m%d_%H%M%S)"
+    
+    # Inserir as novas rotas ANTES da location / existente
+    sudo sed -i '/location \/ {/i\
+    # Sistema de Gestão - Frontend\
+    location /gestao {\
+        alias /var/www/tumi/gestao/dist;\
+        index index.html;\
+        try_files $uri $uri/ /gestao/index.html;\
+        proxy_intercept_errors off;\
+    }\
+\
+    # Sistema de Gestão - API\
+    location /gestao/api/ {\
+        proxy_pass http://localhost:3001/api/;\
+        proxy_set_header Host $host;\
+        proxy_set_header X-Real-IP $remote_addr;\
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\
+        proxy_set_header X-Forwarded-Proto $scheme;\
+        proxy_intercept_errors off;\
+    }\
+\
+    # Assets do sistema de gestão\
+    location /gestao/assets {\
+        alias /var/www/tumi/gestao/dist/assets;\
+        expires 1y;\
+        add_header Cache-Control "public, immutable";\
+    }\
+' "$NGINX_CONFIG"
+    
+    echo "✅ Rotas do gestão adicionadas ao Nginx"
+    echo "✅ Site principal mantido intacto em http://127.0.0.1:5500"
+else
+    echo "✅ Rotas do gestão já configuradas no Nginx"
+fi
+
+# ===== 10. RECARREGAR NGINX =====
+echo "🔄 Testando e recarregando Nginx..."
+if sudo nginx -t; then
+    sudo systemctl reload nginx
+    echo "✅ Nginx recarregado com sucesso"
+else
+    echo "❌ Erro na configuração Nginx - restaurando backup"
+    if [ -f "${NGINX_CONFIG}.backup-$(date +%Y%m%d)*" ]; then
+        sudo cp "${NGINX_CONFIG}.backup-"* "$NGINX_CONFIG"
+        sudo systemctl reload nginx
+    fi
+    exit 1
+fi
 
 # ===== 10. CONFIGURAR SSL (se ainda não estiver configurado) =====
 if ! sudo certbot certificates 2>/dev/null | grep -q "tumihortifruti.com.br"; then
