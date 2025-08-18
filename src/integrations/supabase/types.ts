@@ -72,7 +72,7 @@ export type Database = {
             foreignKeyName: "accounts_payable_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -135,7 +135,7 @@ export type Database = {
             foreignKeyName: "accounts_receivable_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
           {
@@ -241,6 +241,48 @@ export type Database = {
           type?: string
           updated_at?: string
           valid_until?: string | null
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -478,7 +520,7 @@ export type Database = {
             foreignKeyName: "crm_leads_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -550,7 +592,7 @@ export type Database = {
             foreignKeyName: "customers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -598,7 +640,7 @@ export type Database = {
             foreignKeyName: "integrations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -658,7 +700,7 @@ export type Database = {
             foreignKeyName: "marketing_campaigns_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -707,13 +749,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_online_quote_items_product_id"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "public_products"
             referencedColumns: ["id"]
           },
         ]
@@ -770,7 +805,7 @@ export type Database = {
             foreignKeyName: "online_quotes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -812,7 +847,7 @@ export type Database = {
             foreignKeyName: "product_categories_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -872,7 +907,7 @@ export type Database = {
             foreignKeyName: "product_purchases_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
           {
@@ -880,13 +915,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_purchases_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "public_products"
             referencedColumns: ["id"]
           },
           {
@@ -938,7 +966,7 @@ export type Database = {
             foreignKeyName: "product_units_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -1023,7 +1051,7 @@ export type Database = {
             foreignKeyName: "products_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -1074,7 +1102,7 @@ export type Database = {
             foreignKeyName: "profiles_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -1116,20 +1144,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quote_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "public_products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quote_items_quote_id_fkey"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "public_quotes"
             referencedColumns: ["id"]
           },
           {
@@ -1196,10 +1210,37 @@ export type Database = {
             foreignKeyName: "quotes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          ip_address: unknown
+          request_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          ip_address: unknown
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          ip_address?: unknown
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: []
       }
       sale_items: {
         Row: {
@@ -1238,13 +1279,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sale_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "public_products"
             referencedColumns: ["id"]
           },
           {
@@ -1320,7 +1354,7 @@ export type Database = {
             foreignKeyName: "sales_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
           {
@@ -1396,20 +1430,51 @@ export type Database = {
             foreignKeyName: "suppliers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "public_companies"
+            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      public_companies: {
+      company_preview: {
         Row: {
           id: string | null
           logo_url: string | null
           name: string | null
           primary_color: string | null
           secondary_color: string | null
+          website: string | null
         }
         Insert: {
           id?: string | null
@@ -1417,6 +1482,7 @@ export type Database = {
           name?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          website?: string | null
         }
         Update: {
           id?: string | null
@@ -1424,98 +1490,9 @@ export type Database = {
           name?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          website?: string | null
         }
         Relationships: []
-      }
-      public_products: {
-        Row: {
-          company_id: string | null
-          description: string | null
-          id: string | null
-          image_url: string | null
-          name: string | null
-          price: number | null
-          unit: string | null
-        }
-        Insert: {
-          company_id?: string | null
-          description?: string | null
-          id?: string | null
-          image_url?: string | null
-          name?: string | null
-          price?: number | null
-          unit?: string | null
-        }
-        Update: {
-          company_id?: string | null
-          description?: string | null
-          id?: string | null
-          image_url?: string | null
-          name?: string | null
-          price?: number | null
-          unit?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "products_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      public_quotes: {
-        Row: {
-          company_id: string | null
-          id: string | null
-          notes: string | null
-          public_token: string | null
-          status: string | null
-          total_amount: number | null
-          valid_until: string | null
-        }
-        Insert: {
-          company_id?: string | null
-          id?: string | null
-          notes?: string | null
-          public_token?: string | null
-          status?: string | null
-          total_amount?: number | null
-          valid_until?: string | null
-        }
-        Update: {
-          company_id?: string | null
-          id?: string | null
-          notes?: string | null
-          public_token?: string | null
-          status?: string | null
-          total_amount?: number | null
-          valid_until?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quotes_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Functions: {
@@ -1556,6 +1533,18 @@ export type Database = {
           quantity: number
           quote_id: string
         }[]
+      }
+      sanitize_html_content: {
+        Args: { content: string }
+        Returns: string
+      }
+      validate_email: {
+        Args: { email: string }
+        Returns: boolean
+      }
+      validate_phone: {
+        Args: { phone: string }
+        Returns: boolean
       }
     }
     Enums: {
