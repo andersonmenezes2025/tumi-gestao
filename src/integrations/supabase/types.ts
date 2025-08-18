@@ -68,13 +68,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "accounts_payable_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
         ]
       }
       accounts_receivable: {
@@ -129,13 +122,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "accounts_receivable_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
           {
@@ -516,13 +502,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "crm_leads_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
         ]
       }
       customers: {
@@ -588,13 +567,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "customers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
         ]
       }
       integrations: {
@@ -634,13 +606,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "integrations_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -694,13 +659,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketing_campaigns_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -801,13 +759,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "online_quotes_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
         ]
       }
       product_categories: {
@@ -841,13 +792,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_categories_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -904,13 +848,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "product_purchases_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "product_purchases_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -960,13 +897,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_units_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -1047,13 +977,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "products_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
         ]
       }
       profiles: {
@@ -1096,13 +1019,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -1204,13 +1120,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
             referencedColumns: ["id"]
           },
         ]
@@ -1351,13 +1260,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sales_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "sales_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -1426,13 +1328,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "suppliers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company_preview"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_sessions: {
@@ -1467,35 +1362,13 @@ export type Database = {
       }
     }
     Views: {
-      company_preview: {
-        Row: {
-          id: string | null
-          logo_url: string | null
-          name: string | null
-          primary_color: string | null
-          secondary_color: string | null
-          website: string | null
-        }
-        Insert: {
-          id?: string | null
-          logo_url?: string | null
-          name?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          website?: string | null
-        }
-        Update: {
-          id?: string | null
-          logo_url?: string | null
-          name?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          website?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      cleanup_rate_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_quote_token: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1503,6 +1376,17 @@ export type Database = {
       generate_sale_number: {
         Args: { company_uuid: string }
         Returns: string
+      }
+      get_public_company_info: {
+        Args: { company_uuid: string }
+        Returns: {
+          id: string
+          logo_url: string
+          name: string
+          primary_color: string
+          secondary_color: string
+          website: string
+        }[]
       }
       get_public_product_preview: {
         Args: { company_uuid: string; limit_count?: number }
