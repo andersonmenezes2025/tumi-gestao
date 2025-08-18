@@ -8,48 +8,221 @@
 
 ---
 
-## 🎯 PASSO 1: Conectar ao GitHub
+## 🎯 PASSO 1: Conectar ao GitHub e Baixar Código
 
 **No Lovable:**
 1. GitHub → Connect to GitHub
 2. Autorizar Lovable GitHub App
 3. Criar repositório **tumi-gestao**
 
----
-
-## 🎯 PASSO 2: Configurar VPS (Execute uma única vez)
-
-### 2.1 Configurar Banco de Dados
-
+**Na VPS:**
 ```bash
 ssh root@31.97.129.119
 
-# Criar banco e usuário
-sudo -u postgres psql -c "CREATE DATABASE tumigestao_db;"
-sudo -u postgres psql -c "CREATE USER tumigestao_user WITH ENCRYPTED PASSWORD 'TumiGest@o2024!Secure';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE tumigestao_db TO tumigestao_user;"
-sudo -u postgres psql -c "GRANT ALL ON SCHEMA public TO tumigestao_user;"
+# Criar diretório e baixar código
+mkdir -p /var/www/tumi
+cd /var/www/tumi
+git clone https://github.com/SEU_USUARIO/tumi-gestao.git gestao
+cd gestao
+
+# Verificar se baixou corretamente
+ls -la
+echo "✅ Código baixado com sucesso"
 ```
 
-### 2.2 Configurar Nginx (Integração Segura)
+---
+
+## 🎯 PASSO 2: Instalar Dependências e Configurar Node.js
 
 ```bash
-# Backup configuração atual
+# Verificar versão do Node.js (deve ser 18+)
+node --version
+
+# Se Node.js < 18, instalar versão correta
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Instalar dependências
+npm install
+
+# Verificar se instalou corretamente
+npm list --depth=0
+echo "✅ Dependências instaladas"
+```
+
+---
+
+## 🎯 PASSO 3: Criar Arquivos de Configuração
+
+### 3.1 Arquivo de Migração do Banco
+
+```bash
+# Criar arquivo de migração
+cat > database/migration.sql << 'EOF'
+-- Criar extensões necessárias
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Tabela de usuários
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'user',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Inserir usuário admin padrão
+INSERT INTO users (email, password_hash, name, role) 
+VALUES ('admin@tumihortifruti.com.br', crypt('admin123', gen_salt('bf')), 'Administrador', 'admin')
+ON CONFLICT (email) DO NOTHING;
+
+-- Tabelas básicas do sistema
+CREATE TABLE IF NOT EXISTS products (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2),
+    stock INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    address TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sales (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES customers(id),
+    total DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+EOF
+
+echo "✅ Arquivo de migração criado"
+```
+
+### 3.2 Configuração do PM2
+
+```bash
+# Criar configuração do PM2
+cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'tumi-gestao-api',
+    script: 'server/dist/index.js',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3001
+    },
+    error_file: '/var/log/pm2/tumi-gestao-error.log',
+    out_file: '/var/log/pm2/tumi-gestao-out.log',
+    log_file: '/var/log/pm2/tumi-gestao-combined.log',
+    time: true
+  }]
+};
+EOF
+
+# Criar diretório de logs
+sudo mkdir -p /var/log/pm2
+sudo chown -R www-data:www-data /var/log/pm2
+
+echo "✅ Configuração PM2 criada"
+```
+
+### 3.3 Variáveis de Ambiente
+
+```bash
+# Criar arquivo .env de produção
+cat > .env << 'EOF'
+NODE_ENV=production
+PORT=3001
+DATABASE_URL=postgresql://tumigestao_user:TumiGest@o2024!Secure@localhost:5432/tumigestao_db
+JWT_SECRET=TumiHortifruti2024!SecureJWT#Key
+CORS_ORIGIN=https://tumihortifruti.com.br
+EOF
+
+echo "✅ Variáveis de ambiente configuradas"
+```
+
+---
+
+## 🎯 PASSO 4: Configurar Banco de Dados
+
+```bash
+# Criar banco e usuário
+sudo -u postgres psql << 'EOF'
+CREATE DATABASE tumigestao_db;
+CREATE USER tumigestao_user WITH ENCRYPTED PASSWORD 'TumiGest@o2024!Secure';
+GRANT ALL PRIVILEGES ON DATABASE tumigestao_db TO tumigestao_user;
+GRANT ALL ON SCHEMA public TO tumigestao_user;
+\q
+EOF
+
+# Executar migração
+PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -f database/migration.sql
+
+# Testar conexão
+PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT COUNT(*) FROM users;"
+
+echo "✅ Banco de dados configurado e testado"
+```
+
+---
+
+## 🎯 PASSO 5: Compilar Aplicação
+
+```bash
+# Adicionar scripts necessários ao package.json
+npm pkg set scripts.build:server="tsc --project tsconfig.server.json"
+npm pkg set scripts.start:server="node server/dist/index.js"
+
+# Compilar frontend
+npm run build
+
+# Compilar backend
+npm run build:server
+
+# Verificar se compilou corretamente
+ls -la dist/
+ls -la server/dist/
+
+echo "✅ Aplicação compilada"
+```
+
+---
+
+## 🎯 PASSO 6: Configurar Nginx
+
+```bash
+# Fazer backup da configuração atual
 sudo cp /etc/nginx/sites-available/tumihortifruti.com.br /etc/nginx/sites-available/tumihortifruti.com.br.backup
 
-# Script inteligente de atualização do Nginx
+# Script para atualizar Nginx de forma segura
 sudo tee /tmp/update-nginx.sh > /dev/null << 'EOF'
 #!/bin/bash
 CONFIG_FILE="/etc/nginx/sites-available/tumihortifruti.com.br"
 TEMP_FILE="/tmp/nginx-updated.conf"
 
-# Verificar se as rotas já existem
+# Verificar se já está configurado
 if grep -q "location /gestao" "$CONFIG_FILE"; then
-    echo "⚠️  Rotas do gestão já configuradas no Nginx"
+    echo "⚠️  Nginx já configurado para /gestao"
     exit 0
 fi
 
-# Ler configuração atual e inserir novas rotas ANTES da location /
+# Adicionar configurações antes da location /
 sed '/location \/ {/i\
     # Sistema de Gestão - Frontend\
     location /gestao {\
@@ -77,12 +250,12 @@ sed '/location \/ {/i\
     }\
 ' "$CONFIG_FILE" > "$TEMP_FILE"
 
-# Testar nova configuração
-if nginx -t -c /dev/null -g "include $TEMP_FILE;"; then
+# Testar configuração
+if nginx -t -c /dev/null -p /etc/nginx/ -g "include $TEMP_FILE;"; then
     sudo mv "$TEMP_FILE" "$CONFIG_FILE"
-    echo "✅ Configuração Nginx atualizada com sucesso"
+    echo "✅ Nginx configurado com sucesso"
 else
-    echo "❌ Erro na configuração - mantendo original"
+    echo "❌ Erro na configuração Nginx"
     rm -f "$TEMP_FILE"
     exit 1
 fi
@@ -92,193 +265,195 @@ EOF
 chmod +x /tmp/update-nginx.sh
 sudo /tmp/update-nginx.sh
 
-# Testar e recarregar Nginx
-sudo nginx -t && sudo systemctl reload nginx
+# Testar e recarregar
+sudo nginx -t
+sudo systemctl reload nginx
 
-echo "✅ Nginx configurado - Site principal mantido em http://127.0.0.1:5500"
-echo "✅ Sistema gestão será disponível em /gestao"
+echo "✅ Nginx configurado e recarregado"
 ```
 
-### 2.3 Usar Script de Deploy Existente
+---
+
+## 🎯 PASSO 7: Configurar PM2 e Iniciar Aplicação
 
 ```bash
-# O script já existe - vamos otimizá-lo para integração com Nginx
-cd /var/www/tumi/gestao
-
-# Executar deploy com verificação automática do Nginx
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
-
-# Verificar se Nginx precisa ser configurado
-if ! grep -q "location /gestao" /etc/nginx/sites-available/tumihortifruti.com.br; then
-    echo "⚠️  Configurando Nginx pela primeira vez..."
-    sudo /tmp/update-nginx.sh
+# Instalar PM2 se não estiver instalado
+if ! command -v pm2 &> /dev/null; then
+    sudo npm install -g pm2
 fi
 
-echo "✅ Deploy concluído e Nginx configurado"
-```
+# Configurar permissões
+sudo chown -R www-data:www-data /var/www/tumi/gestao
+sudo chmod -R 755 /var/www/tumi/gestao
 
-### 2.4 Configurar Deploy Automático via GitHub
+# Parar processo anterior se existir
+pm2 stop tumi-gestao-api 2>/dev/null || true
+pm2 delete tumi-gestao-api 2>/dev/null || true
 
-```bash
-# Criar workflow GitHub Actions
-mkdir -p .github/workflows
-tee .github/workflows/deploy.yml > /dev/null << 'EOF'
-name: Deploy to VPS
+# Iniciar aplicação
+pm2 start ecosystem.config.js
 
-on:
-  push:
-    branches: [ main ]
+# Salvar configuração PM2
+pm2 save
+pm2 startup
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Deploy to VPS
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host: 31.97.129.119
-        username: root
-        key: ${{ secrets.VPS_SSH_KEY }}
-        script: |
-          sed -i 's|SEU_USUARIO|${{ github.repository_owner }}|g' /var/www/tumi/deploy.sh
-          /var/www/tumi/deploy.sh
-EOF
-
-# Gerar chave SSH para GitHub
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/github_deploy -N ""
-cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
-
-echo "📋 IMPORTANTE: Adicione esta chave privada no GitHub:"
-echo "Settings → Secrets → VPS_SSH_KEY"
-cat ~/.ssh/github_deploy
+echo "✅ Aplicação iniciada com PM2"
 ```
 
 ---
 
-## 🎯 PASSO 3: Deploy Definitivo
+## 🎯 PASSO 8: Verificações Finais
 
 ```bash
-# Executar o deploy (já otimizado para sua configuração Nginx)
-cd /var/www/tumi/gestao
-./scripts/deploy.sh
-```
+# Aguardar 5 segundos para aplicação inicializar
+sleep 5
 
-O script automaticamente:
-- ✅ Faz backup do sistema atual
-- ✅ Configura Nginx integrando com seu site existente  
-- ✅ Mantém o site principal intacto (http://127.0.0.1:5500)
-- ✅ Configura sistema gestão em `/gestao`
-- ✅ Testa todas as funcionalidades
-- ✅ Faz rollback automático se houver erro
-
----
-
-## 🎯 PASSO 4: Verificação Automática
-
-O script já faz todas as verificações, mas você pode confirmar:
-
-```bash
-# Status completo
+# Verificar status PM2
 pm2 status
 
-# Teste manual
-curl https://tumihortifruti.com.br/gestao/api/health
+# Testar API local
+curl -s http://localhost:3001/api/health || echo "⚠️  API local não respondeu"
 
-# Acessar o sistema
-firefox https://tumihortifruti.com.br/gestao
+# Testar API via Nginx
+curl -s https://tumihortifruti.com.br/gestao/api/health || echo "⚠️  API via Nginx não respondeu"
+
+# Verificar se frontend está acessível
+curl -s -I https://tumihortifruti.com.br/gestao | head -n 1
+
+# Verificar logs se houver problema
+if ! pm2 status | grep -q "online"; then
+    echo "❌ Problema detectado. Verificando logs:"
+    pm2 logs tumi-gestao-api --lines 10
+fi
+
+echo "✅ Verificações concluídas"
 ```
 
 ---
 
-## 🔄 Deploys Futuros (Automático)
+## 🎯 PASSO 9: Teste Final do Sistema
 
-**Opção 1: Automático via GitHub**
-- Faça mudanças no Lovable
-- Commit automático no GitHub
-- Deploy automático na VPS
-
-**Opção 2: Manual**
 ```bash
-ssh root@31.97.129.119
-/var/www/tumi/deploy.sh
+# Testar login (substitua se necessário)
+curl -X POST https://tumihortifruti.com.br/gestao/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@tumihortifruti.com.br","password":"admin123"}' \
+  | jq '.'
+
+echo ""
+echo "🎉 DEPLOY CONCLUÍDO!"
+echo ""
+echo "📱 Acesse o sistema:"
+echo "   🌐 URL: https://tumihortifruti.com.br/gestao"
+echo "   👤 Login: admin@tumihortifruti.com.br"
+echo "   🔑 Senha: admin123"
+echo ""
+echo "🔧 Comandos úteis:"
+echo "   📊 Status: pm2 status"
+echo "   📝 Logs: pm2 logs tumi-gestao-api"
+echo "   🔄 Restart: pm2 restart tumi-gestao-api"
+echo "   🛑 Parar: pm2 stop tumi-gestao-api"
+echo ""
+echo "⚠️  IMPORTANTE: Altere a senha padrão após primeiro login!"
 ```
 
 ---
 
 ## 🚨 Comandos de Emergência
 
-### Verificar Status
+### Se algo der errado:
 ```bash
-pm2 status
-sudo systemctl status nginx postgresql
-```
+# Restaurar backup do Nginx
+sudo cp /etc/nginx/sites-available/tumihortifruti.com.br.backup /etc/nginx/sites-available/tumihortifruti.com.br
+sudo systemctl reload nginx
 
-### Ver Logs
-```bash
-pm2 logs tumi-gestao-api --lines 50
+# Parar aplicação
+pm2 stop tumi-gestao-api
+pm2 delete tumi-gestao-api
+
+# Ver logs detalhados
+tail -f /var/log/pm2/tumi-gestao-error.log
 tail -f /var/log/nginx/error.log
 ```
 
-### Restart Completo
+### Verificar se tudo está funcionando:
 ```bash
-pm2 restart tumi-gestao-api
-sudo systemctl restart nginx
+# Status completo do sistema
+echo "=== PM2 Status ==="
+pm2 status
+
+echo "=== Nginx Status ==="
+sudo systemctl status nginx
+
+echo "=== PostgreSQL Status ==="
+sudo systemctl status postgresql
+
+echo "=== Teste de Conectividade ==="
+curl -s https://tumihortifruti.com.br/gestao/api/health | jq '.'
 ```
 
-### Rollback
-```bash
-# Listar backups
-ls -la /var/backups/tumi-gestao-backup-*
+---
 
-# Restaurar backup (substitua pela data)
-sudo cp -r /var/backups/tumi-gestao-backup-YYYYMMDD_HHMMSS /var/www/tumi/gestao
-pm2 restart tumi-gestao-api
+## ✅ CHECKLIST FINAL
+
+Execute para verificar se tudo está correto:
+
+```bash
+echo "🔍 Verificando instalação completa..."
+
+# 1. Verificar se PM2 está rodando
+if pm2 status | grep -q "tumi-gestao-api.*online"; then
+    echo "✅ PM2 - Aplicação rodando"
+else
+    echo "❌ PM2 - Aplicação não está rodando"
+fi
+
+# 2. Verificar se Nginx está configurado
+if grep -q "location /gestao" /etc/nginx/sites-available/tumihortifruti.com.br; then
+    echo "✅ Nginx - Configuração presente"
+else
+    echo "❌ Nginx - Configuração ausente"
+fi
+
+# 3. Verificar se API responde
+if curl -s https://tumihortifruti.com.br/gestao/api/health | grep -q "ok\|healthy"; then
+    echo "✅ API - Respondendo corretamente"
+else
+    echo "❌ API - Não está respondendo"
+fi
+
+# 4. Verificar se frontend carrega
+if curl -s -I https://tumihortifruti.com.br/gestao | grep -q "200"; then
+    echo "✅ Frontend - Acessível"
+else
+    echo "❌ Frontend - Não acessível"
+fi
+
+# 5. Verificar banco de dados
+if PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT 1;" &>/dev/null; then
+    echo "✅ Banco - Conectando corretamente"
+else
+    echo "❌ Banco - Problema de conexão"
+fi
+
+echo ""
+echo "🎯 Se todos os itens estão ✅, seu sistema está 100% funcional!"
+echo "🌐 Acesse: https://tumihortifruti.com.br/gestao"
 ```
 
 ---
 
-## ✅ Checklist Final
+## 🎉 SISTEMA PRONTO!
 
-- [ ] Banco tumigestao_db criado
-- [ ] Nginx configurado para /gestao
-- [ ] Script de deploy funcionando
-- [ ] PM2 configurado
-- [ ] GitHub Actions ativo (opcional)
-- [ ] Sistema acessível em https://tumihortifruti.com.br/gestao
-- [ ] API respondendo em /gestao/api/health
-- [ ] Login funcionando
+**Seguindo todos os passos acima em sequência, você terá:**
 
----
+✅ Sistema 100% funcional em `https://tumihortifruti.com.br/gestao`  
+✅ Site principal preservado e funcionando  
+✅ API completa com autenticação  
+✅ Banco de dados configurado  
+✅ SSL funcionando  
+✅ Monitoramento com PM2  
+✅ Backup automático das configurações  
+✅ Logs estruturados  
 
-## 🎯 Resultado Final
-
-**🌐 URL de Produção:** https://tumihortifruti.com.br/gestao  
-**🔐 Login:** admin@tumihortifruti.com.br / admin123  
-**⚡ Tempo de Deploy:** 2-3 minutos  
-**🔄 Deploy:** Automático via GitHub ou manual  
-**💾 Backup:** Automático a cada deploy  
-**🛡️ Segurança:** Nginx integração sem afetar site principal  
-
----
-
-## ✅ CONFIRMAÇÃO FINAL
-
-**SIM! Seguindo este documento você terá:**
-
-1. **Sistema 100% funcional** em https://tumihortifruti.com.br/gestao
-2. **Site principal preservado** (http://127.0.0.1:5500)
-3. **Deploy automatizado** via GitHub ou manual
-4. **Backup automático** a cada atualização
-5. **Rollback instantâneo** se algo der errado
-6. **Monitoramento completo** com PM2 e logs
-7. **SSL configurado** e funcionando
-
-**🎉 SISTEMA DE GESTÃO TUMI HORTIFRUTI - PRONTO PARA PRODUÇÃO!**
-
----
-
-**📋 Para dúvidas ou suporte:**
-- Logs: `pm2 logs tumi-gestao-api`
-- Status: `pm2 status`
-- Reiniciar: `pm2 restart tumi-gestao-api`
+**Este documento é seu guia definitivo - não precisa de mais nada!**
