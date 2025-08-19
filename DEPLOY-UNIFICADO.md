@@ -183,17 +183,32 @@ echo "✅ Banco configurado"
 
 ```bash
 # ============ INÍCIO DO COMANDO ============
+echo "📁 Verificando arquivos na pasta database:"
+ls -la database/
+
+echo ""
+echo "🔍 Verificando conteúdo do migration.sql:"
 if [ -f "database/migration.sql" ]; then
     echo "✅ Arquivo migration.sql encontrado"
-    echo "Primeiras 5 linhas:"
-    head -5 database/migration.sql
+    echo "Primeiras 10 linhas:"
+    head -10 database/migration.sql
+    echo ""
+    echo "🔍 Verificando se contém tabela profiles (não users):"
+    if grep -q "CREATE TABLE profiles" database/migration.sql; then
+        echo "✅ Arquivo correto - contém tabela 'profiles'"
+    else
+        echo "❌ Arquivo pode estar incorreto - não contém tabela 'profiles'"
+    fi
 else
     echo "❌ Arquivo migration.sql não encontrado!"
-    echo "Arquivos na pasta database:"
-    ls -la database/
 fi
 # ============ FIM DO COMANDO ============
 ```
+
+**🎯 DEVE MOSTRAR:** 
+- Arquivo `migration.sql` encontrado
+- Primeira linha: `-- Script de migração completa para PostgreSQL` 
+- Confirmar que contém tabela `profiles`
 
 ### 6.3 Executar Migração
 
