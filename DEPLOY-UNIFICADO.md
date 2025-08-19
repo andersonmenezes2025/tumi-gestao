@@ -46,7 +46,7 @@ fi
 
 echo ""
 echo "🌐 Nginx:"
-grep -q "location /gestao" /etc/nginx/sites-available/tumihortifruti.com.br && echo "✅ Nginx configurado" || echo "❌ Nginx não configurado"
+grep -q "location /gestao" /etc/nginx/sites-available/tumi && echo "✅ Nginx configurado" || echo "❌ Nginx não configurado"
 EOF
 
 chmod +x /tmp/status.sh
@@ -338,18 +338,22 @@ ls -la server/dist/
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Qualquer lugar
 
+**IMPORTANTE:** O arquivo nginx se chama "tumi" (não "tumihortifruti.com.br"). O script preserva suas configurações SSL existentes.
+
 ```bash
 # ============ INÍCIO DO COMANDO ============
 # Backup do arquivo atual
-sudo cp /etc/nginx/sites-available/tumihortifruti.com.br /etc/nginx/sites-available/tumihortifruti.com.br.backup
+sudo cp /etc/nginx/sites-available/tumi /etc/nginx/sites-available/tumi.backup-$(date +%Y%m%d-%H%M%S)
 
 # Verificar se já está configurado
-if grep -q "location /gestao" /etc/nginx/sites-available/tumihortifruti.com.br; then
+if grep -q "location /gestao" /etc/nginx/sites-available/tumi; then
     echo "⚠️ Nginx já configurado para /gestao"
 else
-    # Adicionar configuração do sistema de gestão
+    echo "🔧 Adicionando configuração do sistema de gestão..."
+    
+    # Adicionar configurações do sistema de gestão ANTES da location /
     sudo sed -i '/location \/ {/i\
-    # Sistema de Gestão\
+    # === SISTEMA DE GESTÃO TUMI ===\
     location /gestao {\
         alias /var/www/tumi/gestao/dist;\
         index index.html;\
@@ -362,6 +366,7 @@ else
         proxy_set_header X-Real-IP $remote_addr;\
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\
         proxy_set_header X-Forwarded-Proto $scheme;\
+        proxy_intercept_errors off;\
     }\
 \
     location /gestao/assets {\
@@ -369,15 +374,30 @@ else
         expires 1y;\
         add_header Cache-Control "public, immutable";\
     }\
-' /etc/nginx/sites-available/tumihortifruti.com.br
+\
+' /etc/nginx/sites-available/tumi
     
-    echo "✅ Nginx configurado"
+    echo "✅ Nginx configurado para /gestao"
 fi
 
+# Mostrar configuração adicionada
+echo ""
+echo "📋 Configurações adicionadas:"
+grep -A 20 "SISTEMA DE GESTÃO" /etc/nginx/sites-available/tumi
+
 # Testar configuração
+echo ""
+echo "🧪 Testando configuração nginx..."
 sudo nginx -t
-sudo systemctl reload nginx
-echo "✅ Nginx recarregado"
+if [ $? -eq 0 ]; then
+    sudo systemctl reload nginx
+    echo "✅ Nginx recarregado com sucesso"
+else
+    echo "❌ Erro na configuração nginx"
+    echo "🔙 Restaurando backup..."
+    sudo cp /etc/nginx/sites-available/tumi.backup-* /etc/nginx/sites-available/tumi
+    sudo nginx -t
+fi
 # ============ FIM DO COMANDO ============
 ```
 
@@ -512,7 +532,7 @@ PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumig
 
 ```bash
 # ============ RESTAURAR NGINX ============
-sudo cp /etc/nginx/sites-available/tumihortifruti.com.br.backup /etc/nginx/sites-available/tumihortifruti.com.br
+sudo cp /etc/nginx/sites-available/tumi.backup-* /etc/nginx/sites-available/tumi
 sudo nginx -t
 sudo systemctl reload nginx
 ```
