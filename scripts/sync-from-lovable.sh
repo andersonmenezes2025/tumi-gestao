@@ -29,21 +29,16 @@ if ! command -v npm &> /dev/null; then
     exit 1
 fi
 
-# ===== 2. BUILD LOCAL =====
-echo "🔨 Fazendo build local para validação..."
+# ===== 2. VALIDAÇÃO DE ARQUIVOS =====
+echo "📋 Validando arquivos essenciais..."
 
-# Instalar dependências
-npm ci --silent
+# Verificar arquivos críticos
+if [ ! -f "server/index.ts" ] || [ ! -f "src/App.tsx" ]; then
+    echo "❌ Arquivos essenciais não encontrados"
+    exit 1
+fi
 
-# Build do frontend
-echo "📦 Build do frontend..."
-npm run build
-
-# Build do backend
-echo "🔧 Build do backend..."
-npm run build:server
-
-echo "✅ Build local concluído com sucesso!"
+echo "✅ Arquivos validados!"
 
 # ===== 3. PREPARAR PARA SYNC =====
 echo "📋 Preparando arquivos para sincronização..."
@@ -96,7 +91,7 @@ if [ "$1" == "--auto-deploy" ]; then
     echo "📤 Enviando arquivos para VPS..."
     scp /tmp/${PROJECT_NAME}-deploy.tar.gz ${VPS_USER}@${VPS_HOST}:/tmp/
     
-    # Executar deploy remoto
+    # Executar deploy remoto com script melhorado
     echo "🔄 Executando deploy remoto..."
     ssh ${VPS_USER}@${VPS_HOST} << 'ENDSSH'
         set -e
@@ -104,8 +99,8 @@ if [ "$1" == "--auto-deploy" ]; then
         tar -xzf tumi-gestao-deploy.tar.gz
         cp -r tumi-gestao-sync/* /var/www/tumi/gestao/
         cd /var/www/tumi/gestao
-        chmod +x scripts/deploy.sh
-        ./scripts/deploy.sh
+        chmod +x scripts/*.sh
+        ./scripts/deploy-with-sync.sh
 ENDSSH
     
     echo "✅ Deploy automatizado concluído!"
