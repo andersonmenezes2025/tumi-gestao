@@ -305,28 +305,97 @@ echo "✅ Aplicação iniciada com PM2"
 ## 🎯 PASSO 8: Verificações Finais
 
 ```bash
-# Aguardar 5 segundos para aplicação inicializar
-sleep 5
+# Script completo de verificação
+cat > /tmp/verificar_sistema.sh << 'EOF'
+#!/bin/bash
 
-# Verificar status PM2
-pm2 status
+echo "🔍 === VERIFICAÇÃO COMPLETA DO SISTEMA ==="
 
-# Testar API local
-curl -s http://localhost:3001/api/health || echo "⚠️  API local não respondeu"
-
-# Testar API via Nginx
-curl -s https://tumihortifruti.com.br/gestao/api/health || echo "⚠️  API via Nginx não respondeu"
-
-# Verificar se frontend está acessível
-curl -s -I https://tumihortifruti.com.br/gestao | head -n 1
-
-# Verificar logs se houver problema
-if ! pm2 status | grep -q "online"; then
-    echo "❌ Problema detectado. Verificando logs:"
-    pm2 logs tumi-gestao-api --lines 10
+# 1. Verificar PM2
+echo ""
+echo "📋 1. Status PM2:"
+if pm2 status | grep -q "tumi-gestao-api.*online"; then
+    echo "✅ PM2: Aplicação rodando"
+    pm2 status | grep tumi-gestao-api
+else
+    echo "❌ PM2: Aplicação NÃO está rodando"
+    echo "📝 Logs PM2:"
+    pm2 logs tumi-gestao-api --lines 5
 fi
 
-echo "✅ Verificações concluídas"
+# 2. Verificar conexão com banco
+echo ""
+echo "🗃️ 2. Teste de Banco:"
+if PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT email FROM profiles WHERE role='admin';" 2>/dev/null | grep -q "admin@tumihortifruti"; then
+    echo "✅ Banco: Conectando e dados OK"
+else
+    echo "❌ Banco: Problema de conexão ou dados"
+    echo "🔧 Testando conexão básica:"
+    PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT 1;" 2>&1 || echo "Erro na conexão"
+fi
+
+# 3. Testar API local
+echo ""
+echo "🔌 3. API Local (porta 3001):"
+API_LOCAL=$(curl -s -w "%{http_code}" http://localhost:3001/api/health 2>/dev/null)
+if echo "$API_LOCAL" | grep -q "200"; then
+    echo "✅ API Local: Respondendo (200 OK)"
+else
+    echo "❌ API Local: Não respondeu corretamente"
+    echo "🔍 Tentando curl detalhado:"
+    curl -v http://localhost:3001/api/health 2>&1 | head -10
+fi
+
+# 4. Testar Nginx
+echo ""
+echo "🌐 4. Nginx e Frontend:"
+NGINX_STATUS=$(curl -s -w "%{http_code}" -I https://tumihortifruti.com.br/gestao/ 2>/dev/null | tail -1)
+if [ "$NGINX_STATUS" = "200" ]; then
+    echo "✅ Nginx: Frontend acessível (200 OK)"
+else
+    echo "❌ Nginx: Frontend não acessível (código: $NGINX_STATUS)"
+fi
+
+# 5. Testar API via Nginx
+echo ""
+echo "🔗 5. API via Nginx:"
+API_NGINX=$(curl -s -w "%{http_code}" https://tumihortifruti.com.br/gestao/api/health 2>/dev/null)
+if echo "$API_NGINX" | grep -q "200"; then
+    echo "✅ API via Nginx: Funcionando (200 OK)"
+else
+    echo "❌ API via Nginx: Não está funcionando"
+    echo "🔍 Verificando configuração Nginx:"
+    grep -A 5 -B 5 "gestao" /etc/nginx/sites-available/tumihortifruti.com.br | head -10
+fi
+
+# 6. Verificar logs se houver problema
+echo ""
+echo "📊 6. Status dos Serviços:"
+systemctl is-active nginx postgres pm2 2>/dev/null || echo "Verificar manualmente: systemctl status nginx postgres"
+
+# 7. Resumo
+echo ""
+echo "🎯 === RESUMO ==="
+pm2 status | grep -q "tumi-gestao-api.*online" && echo "✅ PM2 OK" || echo "❌ PM2 Problema"
+PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT 1;" &>/dev/null && echo "✅ Banco OK" || echo "❌ Banco Problema"
+curl -s http://localhost:3001/api/health &>/dev/null && echo "✅ API Local OK" || echo "❌ API Local Problema"
+curl -s https://tumihortifruti.com.br/gestao/api/health &>/dev/null && echo "✅ API Nginx OK" || echo "❌ API Nginx Problema"
+curl -s -I https://tumihortifruti.com.br/gestao/ | grep -q "200" && echo "✅ Frontend OK" || echo "❌ Frontend Problema"
+
+echo ""
+if pm2 status | grep -q "tumi-gestao-api.*online" && curl -s https://tumihortifruti.com.br/gestao/api/health &>/dev/null; then
+    echo "🎉 SISTEMA 100% FUNCIONAL!"
+    echo "🌐 Acesse: https://tumihortifruti.com.br/gestao"
+    echo "👤 Login: admin@tumihortifruti.com.br"
+    echo "🔑 Senha: admin123"
+else
+    echo "⚠️  SISTEMA COM PROBLEMAS - Verifique os itens marcados com ❌"
+fi
+EOF
+
+# Executar verificação
+chmod +x /tmp/verificar_sistema.sh
+/tmp/verificar_sistema.sh
 ```
 
 ---

@@ -69,9 +69,7 @@ CREATE TABLE companies (
     updated_at timestamp with time zone DEFAULT now()
 );
 
--- Adicionar FK depois da criação da tabela companies
-ALTER TABLE profiles ADD CONSTRAINT profiles_company_id_fkey 
-FOREIGN KEY (company_id) REFERENCES companies(id);
+-- FK será adicionada após inserção dos dados iniciais
 
 -- Tabela product_categories
 CREATE TABLE product_categories (
@@ -596,23 +594,56 @@ CREATE INDEX idx_agenda_events_dates ON agenda_events(start_date, end_date);
 
 -- ===== DADOS INICIAIS =====
 
--- Inserir usuário admin padrão
+-- Primeiro: Inserir empresa padrão
+INSERT INTO companies (
+    id,
+    name,
+    cnpj,
+    email,
+    phone,
+    primary_color,
+    secondary_color,
+    created_at,
+    updated_at
+) VALUES (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+    'Tumi Hortifruti Ltda',
+    '12.345.678/0001-90',
+    'contato@tumihortifruti.com.br',
+    '(11) 99999-9999',
+    '#22c55e',
+    '#16a34a',
+    now(),
+    now()
+);
+
+-- Segundo: Inserir usuário admin padrão
 INSERT INTO profiles (
     id, 
     email, 
     password_hash, 
     full_name, 
-    role, 
+    role,
+    company_id,
     created_at, 
     updated_at
 ) VALUES (
-    gen_random_uuid(),
+    'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22'::uuid,
     'admin@tumihortifruti.com.br',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8.J7hb9e2QRzL3KuRrm', -- senha: admin123
+    crypt('admin123', gen_salt('bf')), -- usar pgcrypto para hash seguro
     'Administrador Sistema',
     'admin',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
     now(),
     now()
 );
+
+-- Terceiro: Adicionar FKs após dados iniciais
+ALTER TABLE profiles ADD CONSTRAINT profiles_company_id_fkey 
+    FOREIGN KEY (company_id) REFERENCES companies(id);
+    
+-- Quarto: Atualizar creator_id da empresa
+UPDATE companies SET creator_id = 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22'::uuid 
+    WHERE id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid;
 
 COMMIT;
