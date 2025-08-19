@@ -324,14 +324,38 @@ psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT email, full_nam
 
 ```bash
 # ============ INÍCIO DO COMANDO ============
+# Compilar frontend
+echo "🔧 Compilando frontend..."
 npm run build
+if [ $? -ne 0 ]; then
+    echo "❌ Erro na compilação do frontend"
+    exit 1
+fi
 echo "Frontend compilado ✅"
 
+# Compilar backend
+echo "🔧 Compilando backend..."
 npm run build:server
+if [ $? -ne 0 ]; then
+    echo "❌ Erro na compilação do backend"
+    echo "💡 Verifique os erros TypeScript acima"
+    exit 1
+fi
 echo "Backend compilado ✅"
 
+# Verificar se arquivos foram gerados
+echo "📋 Verificando arquivos gerados..."
 ls -la dist/
 ls -la server/dist/
+
+# Verificar se diretório server/dist/ existe
+if [ ! -d "server/dist/" ]; then
+    echo "❌ Diretório server/dist/ não foi criado"
+    echo "💡 Verifique os erros de compilação TypeScript acima"
+    exit 1
+fi
+
+echo "✅ Build concluído com sucesso"
 # ============ FIM DO COMANDO ============
 ```
 

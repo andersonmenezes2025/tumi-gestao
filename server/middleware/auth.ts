@@ -4,13 +4,16 @@ import { executeQuery } from '../config/database.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: string;
+  company_id: string | null;
+  full_name?: string;
+}
+
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-    company_id: string | null;
-  };
+  user?: AuthUser;
 }
 
 export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {

@@ -28,14 +28,20 @@ router.get('/:table', authenticateToken, requireCompany, async (req: Authenticat
 
     // Filtrar por empresa (exceto para profiles e companies)
     if (!['profiles', 'companies'].includes(table)) {
+      if (!req.user?.company_id) {
+        return res.status(400).json({ error: 'Usuário deve estar associado a uma empresa' });
+      }
       query += ` WHERE company_id = $1`;
-      params.push(req.user!.company_id);
+      params.push(req.user.company_id);
     } else if (table === 'profiles') {
       query += ` WHERE id = $1`;
       params.push(req.user!.id);
     } else if (table === 'companies') {
+      if (!req.user?.company_id) {
+        return res.status(400).json({ error: 'Usuário deve estar associado a uma empresa' });
+      }
       query += ` WHERE id = $1`;
-      params.push(req.user!.company_id);
+      params.push(req.user.company_id);
     }
 
     // Adicionar filtros adicionais
@@ -88,7 +94,10 @@ router.post('/:table', authenticateToken, requireCompany, async (req: Authentica
 
     // Adicionar company_id automaticamente
     if (!['profiles'].includes(table)) {
-      data.company_id = req.user!.company_id;
+      if (!req.user?.company_id) {
+        return res.status(400).json({ error: 'Usuário deve estar associado a uma empresa' });
+      }
+      data.company_id = req.user.company_id;
     }
 
     // Preparar a query de inserção
@@ -146,8 +155,11 @@ router.put('/:table/:id', authenticateToken, requireCompany, async (req: Authent
 
     // Adicionar filtro por empresa
     if (!['profiles', 'companies'].includes(table)) {
+      if (!req.user?.company_id) {
+        return res.status(400).json({ error: 'Usuário deve estar associado a uma empresa' });
+      }
       whereClause += ` AND company_id = $${columns.length + 2}`;
-      params.push(req.user!.company_id);
+      params.push(req.user.company_id);
     }
 
     const query = `
@@ -191,8 +203,11 @@ router.delete('/:table/:id', authenticateToken, requireCompany, async (req: Auth
 
     // Adicionar filtro por empresa
     if (!['profiles'].includes(table)) {
+      if (!req.user?.company_id) {
+        return res.status(400).json({ error: 'Usuário deve estar associado a uma empresa' });
+      }
       whereClause += ` AND company_id = $2`;
-      params.push(req.user!.company_id);
+      params.push(req.user.company_id);
     }
 
     const query = `DELETE FROM ${table} WHERE ${whereClause} RETURNING *`;
