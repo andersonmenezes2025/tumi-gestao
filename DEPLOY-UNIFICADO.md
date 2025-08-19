@@ -169,33 +169,54 @@ echo "✅ PM2 configurado"
 ```bash
 # ============ INÍCIO DO COMANDO ============
 sudo -u postgres psql -c "CREATE DATABASE tumigestao_db;" 2>/dev/null || echo "Banco já existe"
-sudo -u postgres psql -c "CREATE USER tumigestao_user WITH PASSWORD 'TumiGest@o2024!Secure';" 2>/dev/null || echo "Usuário já existe"
+sudo -u postgres psql -c 'CREATE USER tumigestao_user WITH PASSWORD '\''TumiGest@o2024!Secure'\'';' 2>/dev/null || echo "Usuário já existe"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE tumigestao_db TO tumigestao_user;"
 sudo -u postgres psql -c "GRANT ALL ON SCHEMA public TO tumigestao_user;" tumigestao_db
 echo "✅ Banco configurado"
 # ============ FIM DO COMANDO ============
 ```
 
-### 6.2 Executar Migração
+### 6.2 Verificar Arquivo de Migração
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
 
 ```bash
 # ============ INÍCIO DO COMANDO ============
-PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -f database/migration.sql
+if [ -f "database/migration.sql" ]; then
+    echo "✅ Arquivo migration.sql encontrado"
+    echo "Primeiras 5 linhas:"
+    head -5 database/migration.sql
+else
+    echo "❌ Arquivo migration.sql não encontrado!"
+    echo "Arquivos na pasta database:"
+    ls -la database/
+fi
+# ============ FIM DO COMANDO ============
+```
+
+### 6.3 Executar Migração
+
+**📍 EXECUTAR:** Terminal VPS  
+**📁 DIRETÓRIO:** `/var/www/tumi/gestao`
+
+```bash
+# ============ INÍCIO DO COMANDO ============
+export PGPASSWORD='TumiGest@o2024!Secure'
+psql -h localhost -U tumigestao_user -d tumigestao_db -f database/migration.sql
 echo "✅ Migração executada"
 # ============ FIM DO COMANDO ============
 ```
 
-### 6.3 Testar Conexão
+### 6.4 Testar Conexão
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Qualquer lugar
 
 ```bash
 # ============ INÍCIO DO COMANDO ============
-PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT email, full_name FROM profiles;"
+export PGPASSWORD='TumiGest@o2024!Secure'
+psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT email, full_name FROM profiles;"
 # ============ FIM DO COMANDO ============
 ```
 
