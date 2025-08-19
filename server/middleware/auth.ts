@@ -1,22 +1,12 @@
+/// <reference path="../types/express.ts" />
+
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { executeQuery } from '../config/database.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: string;
-  company_id: string | null;
-  full_name?: string;
-}
-
-export interface AuthenticatedRequest extends Request {
-  user?: AuthUser;
-}
-
-export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -48,7 +38,7 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
   }
 };
 
-export const requireCompany = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const requireCompany = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user?.company_id) {
     return res.status(403).json({ error: 'Acesso negado: empresa requerida' });
   }
@@ -56,7 +46,7 @@ export const requireCompany = (req: AuthenticatedRequest, res: Response, next: N
 };
 
 export const requireRole = (roles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user?.role || !roles.includes(req.user.role)) {
       return res.status(403).json({ error: 'Acesso negado: permissão insuficiente' });
     }

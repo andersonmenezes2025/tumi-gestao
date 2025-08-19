@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { executeQuery } from '../config/database.js';
-import { AuthenticatedRequest, authenticateToken } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
@@ -115,7 +115,7 @@ router.post('/signin', async (req, res) => {
 });
 
 // Get session
-router.get('/session', authenticateToken, async (req: AuthenticatedRequest, res) => {
+router.get('/session', authenticateToken, async (req: Request, res) => {
   try {
     res.json({
       user: req.user,

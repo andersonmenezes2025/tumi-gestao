@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { executeQuery } from '../config/database.js';
-import { AuthenticatedRequest, authenticateToken, requireCompany } from '../middleware/auth.js';
+import { authenticateToken, requireCompany } from '../middleware/auth.js';
 
 const router = Router();
 
 // Generic GET route for tables with company filtering
-router.get('/:table', authenticateToken, requireCompany, async (req: AuthenticatedRequest, res) => {
+router.get('/:table', authenticateToken, requireCompany, async (req: Request, res) => {
   try {
     const { table } = req.params;
     const { select, eq, order, limit } = req.query;
@@ -76,7 +76,7 @@ router.get('/:table', authenticateToken, requireCompany, async (req: Authenticat
 });
 
 // Generic POST route for inserting data
-router.post('/:table', authenticateToken, requireCompany, async (req: AuthenticatedRequest, res) => {
+router.post('/:table', authenticateToken, requireCompany, async (req: Request, res) => {
   try {
     const { table } = req.params;
     const data = req.body;
@@ -120,7 +120,7 @@ router.post('/:table', authenticateToken, requireCompany, async (req: Authentica
 });
 
 // Generic PUT route for updating data
-router.put('/:table/:id', authenticateToken, requireCompany, async (req: AuthenticatedRequest, res) => {
+router.put('/:table/:id', authenticateToken, requireCompany, async (req: Request, res) => {
   try {
     const { table, id } = req.params;
     const data = req.body;
@@ -183,7 +183,7 @@ router.put('/:table/:id', authenticateToken, requireCompany, async (req: Authent
 });
 
 // Generic DELETE route
-router.delete('/:table/:id', authenticateToken, requireCompany, async (req: AuthenticatedRequest, res) => {
+router.delete('/:table/:id', authenticateToken, requireCompany, async (req: Request, res) => {
   try {
     const { table, id } = req.params;
 
