@@ -123,14 +123,20 @@ cat .env
 
 ---
 
-## 🎯 PASSO 5: CRIAR CONFIGURAÇÃO PM2
+## 📋 PASSO 5: CRIAR CONFIGURAÇÃO PM2
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
 
+**IMPORTANTE:** Usar `.cjs` para evitar conflitos com ES modules.
+
 ```bash
 # ============ INÍCIO DO COMANDO ============
-cat > ecosystem.config.js << 'CONFIG_PM2'
+# Remover arquivo .js anterior se existir
+rm -f ecosystem.config.js
+
+# Criar arquivo de configuração PM2 (formato CommonJS)
+cat > ecosystem.config.cjs << 'CONFIG_PM2'
 module.exports = {
   apps: [{
     name: 'tumi-gestao-api',
@@ -427,7 +433,7 @@ pm2 stop tumi-gestao-api 2>/dev/null || echo "App não estava rodando"
 pm2 delete tumi-gestao-api 2>/dev/null || echo "App não existia"
 
 # Iniciar aplicação
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup
 
