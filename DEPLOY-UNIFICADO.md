@@ -90,26 +90,35 @@ chmod +x /tmp/verificar_status.sh
 2. Autorizar Lovable GitHub App
 3. Criar repositório **tumi-gestao**
 
-**Na VPS:**
+**📍 EXECUTAR NO:** Terminal da sua máquina
 ```bash
+📋 CÓDIGO PARA COPIAR (início):
 ssh root@31.97.129.119
+✂️ FIM DO CÓDIGO
+```
 
-# Criar diretório e baixar código
+**📍 EXECUTAR NO:** Terminal VPS (após conectar via SSH)
+```bash
+📋 CÓDIGO PARA COPIAR (início):
 mkdir -p /var/www/tumi
 cd /var/www/tumi
 git clone https://github.com/SEU_USUARIO/tumi-gestao.git gestao
 cd gestao
-
-# Verificar se baixou corretamente
 ls -la
 echo "✅ Código baixado com sucesso"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Deve aparecer arquivos como `package.json`, `src/`, `server/`, etc.
 
 ---
 
 ## 🎯 PASSO 2: Instalar Dependências e Configurar Node.js
 
+**📍 EXECUTAR NO:** Terminal VPS (diretório `/var/www/tumi/gestao`)
+
 ```bash
+📋 CÓDIGO PARA COPIAR (início):
 # Verificar versão do Node.js (deve ser 18+)
 node --version
 
@@ -123,7 +132,10 @@ npm install
 # Verificar se instalou corretamente
 npm list --depth=0
 echo "✅ Dependências instaladas"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Deve mostrar versão Node.js 18+ e criar pasta `node_modules/`
 
 ---
 
@@ -131,22 +143,25 @@ echo "✅ Dependências instaladas"
 
 ### 3.1 Adicionar Scripts ao package.json
 
-```bash
-# Ir para diretório do projeto
-cd /var/www/tumi/gestao
+**📍 EXECUTAR NO:** Terminal VPS (diretório `/var/www/tumi/gestao`)
 
-# Adicionar scripts necessários
+```bash
+📋 CÓDIGO PARA COPIAR (início):
+cd /var/www/tumi/gestao
 npm pkg set scripts.build:server="tsc --project tsconfig.server.json"
 npm pkg set scripts.start:server="node server/dist/index.js"
-
-# Verificar se scripts foram adicionados
 npm run --silent | grep -E "(build:server|start:server)" && echo "✅ Scripts adicionados"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Deve mostrar "✅ Scripts adicionados"
 
 ### 3.2 Arquivo .env de Produção
 
+**📍 EXECUTAR NO:** Terminal VPS (diretório `/var/www/tumi/gestao`)
+
 ```bash
-# Criar arquivo .env
+📋 CÓDIGO PARA COPIAR (início):
 cat > .env << 'EOF'
 NODE_ENV=production
 PORT=3001
@@ -154,14 +169,18 @@ DATABASE_URL=postgresql://tumigestao_user:TumiGest@o2024!Secure@localhost:5432/t
 JWT_SECRET=TumiHortifruti2024!SecureJWT#Key
 CORS_ORIGIN=https://tumihortifruti.com.br
 EOF
-
 echo "✅ Arquivo .env criado"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Arquivo `.env` deve ser criado no diretório atual
 
 ### 3.3 Configuração do PM2
 
+**📍 EXECUTAR NO:** Terminal VPS (diretório `/var/www/tumi/gestao`)
+
 ```bash
-# Criar configuração do PM2
+📋 CÓDIGO PARA COPIAR (início):
 cat > ecosystem.config.js << 'EOF'
 module.exports = {
   apps: [{
@@ -182,20 +201,24 @@ module.exports = {
   }]
 };
 EOF
-
-# Criar diretório de logs
 sudo mkdir -p /var/log/pm2
 sudo chown -R www-data:www-data /var/log/pm2
-
 echo "✅ Configuração PM2 criada"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Arquivo `ecosystem.config.js` deve ser criado
 
 ---
 
 ## 🎯 PASSO 4: Configurar Banco de Dados
 
+### 4.1 Criar Banco e Usuário
+
+**📍 EXECUTAR NO:** Terminal VPS
+
 ```bash
-# Criar banco e usuário
+📋 CÓDIGO PARA COPIAR (início):
 sudo -u postgres psql << 'EOF'
 CREATE DATABASE tumigestao_db;
 CREATE USER tumigestao_user WITH ENCRYPTED PASSWORD 'TumiGest@o2024!Secure';
@@ -203,29 +226,66 @@ GRANT ALL PRIVILEGES ON DATABASE tumigestao_db TO tumigestao_user;
 GRANT ALL ON SCHEMA public TO tumigestao_user;
 \q
 EOF
+✂️ FIM DO CÓDIGO
+```
 
-# Executar migração
+### 4.2 Executar Migração do Banco
+
+**📍 EXECUTAR NO:** Terminal VPS (diretório `/var/www/tumi/gestao`)
+
+```bash
+📋 CÓDIGO PARA COPIAR (início):
 PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -f database/migration.sql
+✂️ FIM DO CÓDIGO
+```
 
-# Testar conexão
-PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT COUNT(*) FROM users;"
+### 4.3 Testar Conexão com Banco
 
-echo "✅ Banco de dados configurado e testado"
+**📍 EXECUTAR NO:** Terminal VPS
+
+```bash
+📋 CÓDIGO PARA COPIAR (início):
+PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT COUNT(*) FROM profiles;"
+✂️ FIM DO CÓDIGO
+```
+
+**🔍 VERIFICAR:** Deve mostrar "count: 1" (usuário admin criado)
+
+### 4.4 Comandos para Acessar o Banco Diretamente (se necessário)
+
+**📍 PARA ACESSAR O BANCO:** Use este comando no Terminal VPS
+```bash
+📋 COMANDO PARA ACESSAR BANCO:
+PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db
+✂️ FIM DO COMANDO
+```
+
+**📍 COMANDOS SQL ÚTEIS** (executar dentro do banco após acessar):
+```sql
+📋 COMANDOS SQL (executar um por vez no prompt do banco):
+-- Ver tabelas criadas
+\dt
+
+-- Ver usuários no sistema  
+SELECT email, full_name, role FROM profiles;
+
+-- Sair do banco
+\q
+✂️ FIM DOS COMANDOS SQL
 ```
 
 ---
 
 ## 🎯 PASSO 5: Compilar Aplicação
 
-```bash
-# Adicionar scripts necessários ao package.json
-npm pkg set scripts.build:server="tsc --project tsconfig.server.json"
-npm pkg set scripts.start:server="node server/dist/index.js"
+**📍 EXECUTAR NO:** Terminal VPS (diretório `/var/www/tumi/gestao`)
 
+```bash
+📋 CÓDIGO PARA COPIAR (início):
 # Compilar frontend
 npm run build
 
-# Compilar backend
+# Compilar backend  
 npm run build:server
 
 # Verificar se compilou corretamente
@@ -233,13 +293,19 @@ ls -la dist/
 ls -la server/dist/
 
 echo "✅ Aplicação compilada"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Pastas `dist/` e `server/dist/` devem existir com arquivos compilados
 
 ---
 
 ## 🎯 PASSO 6: Configurar Nginx
 
+**📍 EXECUTAR NO:** Terminal VPS
+
 ```bash
+📋 CÓDIGO PARA COPIAR (início):
 # Fazer backup da configuração atual
 sudo cp /etc/nginx/sites-available/tumihortifruti.com.br /etc/nginx/sites-available/tumihortifruti.com.br.backup
 
@@ -303,13 +369,19 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 echo "✅ Nginx configurado e recarregado"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Execute `sudo nginx -t` - deve mostrar "syntax is ok" e "test is successful"
 
 ---
 
 ## 🎯 PASSO 7: Configurar PM2 e Iniciar Aplicação
 
+**📍 EXECUTAR NO:** Terminal VPS (diretório `/var/www/tumi/gestao`)
+
 ```bash
+📋 CÓDIGO PARA COPIAR (início):
 # Instalar PM2 se não estiver instalado
 if ! command -v pm2 &> /dev/null; then
     sudo npm install -g pm2
@@ -331,13 +403,19 @@ pm2 save
 pm2 startup
 
 echo "✅ Aplicação iniciada com PM2"
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Execute `pm2 status` - deve aparecer `tumi-gestao-api` com status `online`
 
 ---
 
 ## 🎯 PASSO 8: Verificações Finais
 
+**📍 EXECUTAR NO:** Terminal VPS
+
 ```bash
+📋 CÓDIGO PARA COPIAR (início):
 # Script completo de verificação
 cat > /tmp/verificar_sistema.sh << 'EOF'
 #!/bin/bash
@@ -429,7 +507,10 @@ EOF
 # Executar verificação
 chmod +x /tmp/verificar_sistema.sh
 /tmp/verificar_sistema.sh
+✂️ FIM DO CÓDIGO
 ```
+
+**🔍 VERIFICAR:** Se tudo estiver OK, deve mostrar "🎉 SISTEMA 100% FUNCIONAL!"
 
 ---
 
