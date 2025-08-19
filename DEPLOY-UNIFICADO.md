@@ -8,6 +8,81 @@
 
 ---
 
+## 🔍 ANTES DE COMEÇAR: Verificar Status Atual
+
+Execute este comando para ver o que já foi feito:
+
+```bash
+# Script para verificar o que já está configurado
+cat > /tmp/verificar_status.sh << 'EOF'
+#!/bin/bash
+echo "🔍 === STATUS ATUAL DO SISTEMA ==="
+
+# 1. Verificar se código foi baixado
+if [ -d "/var/www/tumi/gestao" ]; then
+    echo "✅ Código: Baixado em /var/www/tumi/gestao"
+    ls /var/www/tumi/gestao/package.json >/dev/null 2>&1 && echo "  📦 package.json encontrado"
+else
+    echo "❌ Código: NÃO baixado"
+fi
+
+# 2. Verificar Node.js
+NODE_VERSION=$(node --version 2>/dev/null || echo "não instalado")
+echo "🔧 Node.js: $NODE_VERSION"
+
+# 3. Verificar dependências npm
+if [ -d "/var/www/tumi/gestao/node_modules" ]; then
+    echo "✅ NPM: Dependências instaladas"
+else
+    echo "❌ NPM: Dependências NÃO instaladas"
+fi
+
+# 4. Verificar banco PostgreSQL
+if PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT 1;" &>/dev/null; then
+    echo "✅ Banco: Configurado e acessível"
+    # Verificar se tem dados
+    USER_COUNT=$(PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -t -c "SELECT COUNT(*) FROM profiles;" 2>/dev/null | tr -d ' ')
+    if [ "$USER_COUNT" -gt 0 ] 2>/dev/null; then
+        echo "  👤 Dados: $USER_COUNT usuários encontrados"
+    else
+        echo "  📭 Dados: Banco vazio ou migração necessária"
+    fi
+else
+    echo "❌ Banco: NÃO configurado"
+fi
+
+# 5. Verificar PM2
+if command -v pm2 >/dev/null 2>&1; then
+    echo "✅ PM2: Instalado"
+    if pm2 status | grep -q "tumi-gestao-api"; then
+        echo "  🚀 App: tumi-gestao-api encontrado"
+        pm2 status | grep tumi-gestao-api
+    else
+        echo "  📴 App: tumi-gestao-api NÃO encontrado"
+    fi
+else
+    echo "❌ PM2: NÃO instalado"
+fi
+
+# 6. Verificar Nginx
+if grep -q "location /gestao" /etc/nginx/sites-available/tumihortifruti.com.br 2>/dev/null; then
+    echo "✅ Nginx: Configurado para /gestao"
+else
+    echo "❌ Nginx: NÃO configurado para /gestao"
+fi
+
+echo ""
+echo "🎯 === PRÓXIMOS PASSOS ==="
+echo "Use este resultado para pular etapas já concluídas ✅"
+echo "Execute apenas os passos marcados com ❌"
+EOF
+
+chmod +x /tmp/verificar_status.sh
+/tmp/verificar_status.sh
+```
+
+---
+
 ## 🎯 PASSO 1: Conectar ao GitHub e Baixar Código
 
 **No Lovable:**
@@ -54,63 +129,36 @@ echo "✅ Dependências instaladas"
 
 ## 🎯 PASSO 3: Criar Arquivos de Configuração
 
-### 3.1 Arquivo de Migração do Banco
+### 3.1 Adicionar Scripts ao package.json
 
 ```bash
-# Criar arquivo de migração
-cat > database/migration.sql << 'EOF'
--- Criar extensões necessárias
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+# Ir para diretório do projeto
+cd /var/www/tumi/gestao
 
--- Tabela de usuários
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'user',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+# Adicionar scripts necessários
+npm pkg set scripts.build:server="tsc --project tsconfig.server.json"
+npm pkg set scripts.start:server="node server/dist/index.js"
 
--- Inserir usuário admin padrão
-INSERT INTO users (email, password_hash, name, role) 
-VALUES ('admin@tumihortifruti.com.br', crypt('admin123', gen_salt('bf')), 'Administrador', 'admin')
-ON CONFLICT (email) DO NOTHING;
-
--- Tabelas básicas do sistema
-CREATE TABLE IF NOT EXISTS products (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    price DECIMAL(10,2),
-    stock INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS customers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    phone VARCHAR(50),
-    address TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS sales (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    customer_id UUID REFERENCES customers(id),
-    total DECIMAL(10,2) NOT NULL,
-    status VARCHAR(50) DEFAULT 'pending',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-EOF
-
-echo "✅ Arquivo de migração criado"
+# Verificar se scripts foram adicionados
+npm run --silent | grep -E "(build:server|start:server)" && echo "✅ Scripts adicionados"
 ```
 
-### 3.2 Configuração do PM2
+### 3.2 Arquivo .env de Produção
+
+```bash
+# Criar arquivo .env
+cat > .env << 'EOF'
+NODE_ENV=production
+PORT=3001
+DATABASE_URL=postgresql://tumigestao_user:TumiGest@o2024!Secure@localhost:5432/tumigestao_db
+JWT_SECRET=TumiHortifruti2024!SecureJWT#Key
+CORS_ORIGIN=https://tumihortifruti.com.br
+EOF
+
+echo "✅ Arquivo .env criado"
+```
+
+### 3.3 Configuração do PM2
 
 ```bash
 # Criar configuração do PM2
@@ -140,21 +188,6 @@ sudo mkdir -p /var/log/pm2
 sudo chown -R www-data:www-data /var/log/pm2
 
 echo "✅ Configuração PM2 criada"
-```
-
-### 3.3 Variáveis de Ambiente
-
-```bash
-# Criar arquivo .env de produção
-cat > .env << 'EOF'
-NODE_ENV=production
-PORT=3001
-DATABASE_URL=postgresql://tumigestao_user:TumiGest@o2024!Secure@localhost:5432/tumigestao_db
-JWT_SECRET=TumiHortifruti2024!SecureJWT#Key
-CORS_ORIGIN=https://tumihortifruti.com.br
-EOF
-
-echo "✅ Variáveis de ambiente configuradas"
 ```
 
 ---
