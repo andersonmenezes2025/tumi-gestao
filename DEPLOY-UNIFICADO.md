@@ -1,13 +1,150 @@
-# 🚀 Deploy Tumi Hortifruti - VPS Direto
+# 🚀 DEPLOY TUMI HORTIFRUTI - GUIA COMPLETO
 
-## 📋 PRÉ-REQUISITOS
-- VPS: 31.97.129.119 (PostgreSQL + Nginx já configurados)
-- Arquivos já estão em `/var/www/tumi/gestao`
-- Executar **TUDO DIRETAMENTE NA VPS**
+## 🎯 ESCOLHA SEU MÉTODO DE DEPLOY
+
+### 🌟 MÉTODO 1: Deploy Automático GitHub (RECOMENDADO)
+- ✅ Pull automático do GitHub
+- ✅ Build e deploy automático na VPS
+- ✅ Rollback automático em caso de erro
+- ✅ Ideal para desenvolvimento contínuo
+
+### ⚡ MÉTODO 2: Deploy Automático Local (Lovable)
+- ✅ Sync direto do ambiente Lovable
+- ✅ Deploy automático na VPS
+- ✅ Ideal para desenvolvimento no Lovable
+
+### 🛠️ MÉTODO 3: Deploy Manual (Troubleshooting)
+- ✅ Controle total do processo
+- ✅ Ideal para debugging e configuração inicial
+- ✅ Passo a passo detalhado
 
 ---
 
-## 🔍 PASSO 0: VERIFICAR STATUS ATUAL
+## 🌟 MÉTODO 1: Deploy Automático GitHub
+
+### 📋 Pré-requisitos
+- ✅ Código no GitHub
+- ✅ SSH configurado para VPS: 31.97.129.119
+- ✅ Git instalado localmente
+
+### 🚀 Setup Inicial (Executar UMA VEZ)
+
+**📍 EXECUTAR:** Terminal local (Lovable ou sua máquina)  
+**📁 DIRETÓRIO:** Raiz do projeto
+
+```bash
+# ============ CONFIGURAÇÃO INICIAL ============
+./scripts/setup-github-deploy.sh
+```
+
+**🎯 O script irá:**
+1. Solicitar a URL do seu repositório GitHub
+2. Configurar os scripts com a URL correta
+3. Testar conectividade GitHub e SSH
+4. Opcionalmente configurar SSH keys na VPS
+
+### 🚀 Deploy Automático (Comando Principal)
+
+**📍 EXECUTAR:** Terminal local  
+**📁 DIRETÓRIO:** Raiz do projeto
+
+```bash
+# ============ DEPLOY COMPLETO GITHUB → VPS ============
+./scripts/github-deploy.sh
+```
+
+**🎯 O que acontece automaticamente:**
+1. ✅ Pull do código mais recente do GitHub
+2. ✅ Upload para VPS
+3. ✅ Build frontend e backend na VPS  
+4. ✅ Deploy com backup automático
+5. ✅ Restart da aplicação
+6. ✅ Verificação de saúde
+7. ✅ Rollback automático se houver erro
+
+### 📥 Sync Apenas (sem deploy)
+
+Se quiser apenas atualizar os arquivos sem fazer deploy:
+
+```bash
+# ============ SYNC GITHUB → VPS (SEM BUILD) ============
+./scripts/github-sync.sh
+```
+
+### 🔄 Workflow Recomendado GitHub
+
+```bash
+# 1. Fazer alterações no código
+# 2. Commit e push para GitHub
+git add .
+git commit -m "feat: nova funcionalidade"
+git push origin main
+
+# 3. Deploy automático
+./scripts/github-deploy.sh
+
+# 4. Verificar resultado
+# https://tumihortifruti.com.br/gestao
+```
+
+---
+
+## ⚡ MÉTODO 2: Deploy Automático Local (Lovable)
+
+### 📋 Pré-requisitos
+- ✅ Arquivos na máquina local (Lovable)
+- ✅ SSH configurado para VPS: 31.97.129.119
+- ✅ Scripts de deploy configurados
+
+### 🚀 Deploy Completo Local → VPS
+
+**📍 EXECUTAR:** Terminal local (Lovable)  
+**📁 DIRETÓRIO:** Raiz do projeto
+
+```bash
+# ============ DEPLOY COMPLETO LOVABLE → VPS ============
+./scripts/deploy-full.sh
+```
+
+**🎯 O que acontece automaticamente:**
+1. ✅ Validação dos arquivos locais
+2. ✅ Compactação e upload para VPS
+3. ✅ Build automático na VPS
+4. ✅ Deploy com backup
+5. ✅ Verificação de saúde
+6. ✅ Rollback automático em caso de erro
+
+### 📥 Sync Apenas Local → VPS
+
+Para apenas transferir arquivos sem fazer deploy:
+
+```bash
+# ============ SYNC LOVABLE → VPS (SEM BUILD) ============
+./scripts/sync-from-lovable.sh
+
+# OU com deploy automático
+./scripts/sync-from-lovable.sh --auto-deploy
+```
+
+### ⚡ Deploy Rápido (sem sync)
+
+Para quando já fez sync e quer apenas rebuild:
+
+```bash
+# ============ DEPLOY RÁPIDO (SEM SYNC) ============
+./scripts/quick-deploy.sh
+```
+
+---
+
+## 🛠️ MÉTODO 3: Deploy Manual (Troubleshooting)
+
+### 📋 Pré-requisitos
+- ✅ VPS: 31.97.129.119 (PostgreSQL + Nginx configurados)  
+- ✅ Arquivos já estão em `/var/www/tumi/gestao`
+- ✅ Executar **TODOS OS COMANDOS DIRETAMENTE NA VPS**
+
+### 🔍 PASSO 1: VERIFICAR STATUS ATUAL
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Qualquer lugar
@@ -56,7 +193,7 @@ chmod +x /tmp/status.sh
 
 ---
 
-## 🎯 PASSO 1: PREPARAR DIRETÓRIO
+### 🎯 PASSO 2: PREPARAR DIRETÓRIO
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Ir para pasta do projeto
@@ -71,7 +208,7 @@ ls -la
 
 ---
 
-## 🎯 PASSO 2: INSTALAR DEPENDÊNCIAS NPM
+### 🎯 PASSO 3: INSTALAR DEPENDÊNCIAS NPM
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -85,7 +222,7 @@ echo "✅ Dependências instaladas"
 
 ---
 
-## 🎯 PASSO 3: CONFIGURAR SCRIPTS
+### 🎯 PASSO 4: CONFIGURAR SCRIPTS
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -101,7 +238,7 @@ npm run --help | grep build:server
 
 ---
 
-## 🎯 PASSO 4: CRIAR ARQUIVO .ENV
+### 🎯 PASSO 5: CRIAR ARQUIVO .ENV
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -123,7 +260,7 @@ cat .env
 
 ---
 
-## 📋 PASSO 5: CRIAR CONFIGURAÇÃO PM2
+### 📋 PASSO 6: CRIAR CONFIGURAÇÃO PM2
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -165,9 +302,9 @@ echo "✅ PM2 configurado"
 
 ---
 
-## 🎯 PASSO 6: CONFIGURAR BANCO DE DADOS
+### 🎯 PASSO 7: CONFIGURAR BANCO DE DADOS
 
-### 6.1 Criar Banco e Usuário
+#### 7.1 Criar Banco e Usuário
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Qualquer lugar
@@ -182,7 +319,7 @@ echo "✅ Banco configurado"
 # ============ FIM DO COMANDO ============
 ```
 
-### 6.2 Verificar e Corrigir Arquivo de Migração
+#### 7.2 Verificar e Corrigir Arquivo de Migração
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -288,7 +425,7 @@ fi
 - Novo arquivo criado com estrutura correta
 - Pode ser necessário completar o arquivo com o conteúdo do repositório
 
-### 6.3 Executar Migração
+#### 7.3 Executar Migração
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -301,7 +438,7 @@ echo "✅ Migração executada"
 # ============ FIM DO COMANDO ============
 ```
 
-### 6.4 Testar Conexão
+#### 7.4 Testar Conexão
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Qualquer lugar
@@ -317,7 +454,7 @@ psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT email, full_nam
 
 ---
 
-## 🎯 PASSO 7: COMPILAR APLICAÇÃO
+### 🎯 PASSO 8: COMPILAR APLICAÇÃO
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -363,7 +500,7 @@ echo "✅ Build concluído com sucesso"
 
 ---
 
-## 🎯 PASSO 8: CONFIGURAR NGINX
+### 🎯 PASSO 9: CONFIGURAR NGINX
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Qualquer lugar
@@ -433,7 +570,7 @@ fi
 
 ---
 
-## 🎯 PASSO 9: INSTALAR E CONFIGURAR PM2
+### 🎯 PASSO 10: INSTALAR E CONFIGURAR PM2
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** `/var/www/tumi/gestao`
@@ -470,7 +607,7 @@ pm2 status
 
 ---
 
-## 🎯 PASSO 10: VERIFICAÇÃO COMPLETA
+### 🎯 PASSO 11: VERIFICAÇÃO COMPLETA
 
 **📍 EXECUTAR:** Terminal VPS  
 **📁 DIRETÓRIO:** Qualquer lugar
@@ -521,7 +658,9 @@ echo "🔑 Senha: admin123"
 
 ---
 
-## 🆘 COMANDOS DE EMERGÊNCIA
+## 📋 MANUTENÇÃO E TROUBLESHOOTING
+
+### 🆘 Comandos de Emergência
 
 ### Para ver logs detalhados:
 
@@ -567,9 +706,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
----
-
-## ✅ CHECKLIST DE SUCESSO
+### ✅ Checklist de Sucesso
 
 **Execute este comando para verificar se TUDO está funcionando:**
 
@@ -596,20 +733,159 @@ echo ""
 echo "🎯 Se TODOS os testes mostram ✅ = SISTEMA 100% FUNCIONAL!"
 ```
 
+### 🔄 Rollback de Emergência
+
+Em caso de problemas após deploy:
+
+```bash
+# ============ ROLLBACK AUTOMÁTICO ============
+ssh root@31.97.129.119 'cd /var/www/tumi/gestao && ./scripts/deploy-with-sync.sh --rollback'
+
+# ============ ROLLBACK MANUAL ============
+ssh root@31.97.129.119
+cd /var/www/tumi/gestao
+
+# Restaurar backup mais recente
+BACKUP_DIR=$(ls -1t /var/backups/tumi-gestao/ | head -1)
+cp /var/backups/tumi-gestao/$BACKUP_DIR/.env .
+cp /var/backups/tumi-gestao/$BACKUP_DIR/package.json .
+tar xzf /var/backups/tumi-gestao/$BACKUP_DIR/backup.tar.gz
+
+# Reiniciar aplicação
+pm2 restart tumi-gestao-api
+```
+
+### 📊 Monitoramento Contínuo
+
+```bash
+# ============ MONITORAMENTO EM TEMPO REAL ============
+# Status geral
+ssh root@31.97.129.119 'pm2 monit'
+
+# Logs em tempo real
+ssh root@31.97.129.119 'pm2 logs tumi-gestao-api --lines 100'
+
+# Health check automático
+watch -n 30 'curl -s https://tumihortifruti.com.br/gestao/api/health'
+
+# Uso de recursos
+ssh root@31.97.129.119 'top -p $(pgrep -f "tumi-gestao-api")'
+```
+
+### 🚨 Solução de Problemas Comuns
+
+#### Problema: TypeScript Build Errors
+```bash
+# Na VPS, verificar erros específicos
+cd /var/www/tumi/gestao
+npm run build:server 2>&1 | grep -A 5 -B 5 "error"
+
+# Limpar cache e rebuildar
+rm -rf server/dist node_modules/.cache
+npm run build:server
+```
+
+#### Problema: PM2 não inicia
+```bash
+# Verificar logs detalhados
+pm2 logs tumi-gestao-api --err --lines 50
+
+# Testar script manualmente
+cd /var/www/tumi/gestao
+node server/dist/index.js
+
+# Recrear configuração PM2
+pm2 delete tumi-gestao-api
+pm2 start ecosystem.config.cjs
+```
+
+#### Problema: Banco não conecta
+```bash
+# Testar conexão manual
+PGPASSWORD='TumiGest@o2024!Secure' psql -h localhost -U tumigestao_user -d tumigestao_db -c "SELECT version();"
+
+# Verificar serviço PostgreSQL
+sudo systemctl status postgresql
+sudo systemctl restart postgresql
+```
+
+#### Problema: Nginx 502/504
+```bash
+# Verificar logs Nginx
+sudo tail -f /var/log/nginx/error.log
+
+# Testar API diretamente
+curl http://localhost:3001/api/health
+
+# Recarregar configuração
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
 ---
 
-## 🎉 FINALIZAÇÃO
+## 🎉 RESUMO FINAL
 
-**Sistema funcionando em:** `https://tumihortifruti.com.br/gestao`
+### 🎯 Sistema Funcionando
 
-**Login padrão:**
-- Email: `admin@tumihortifruti.com.br`
+**🌐 Acesso:** https://tumihortifruti.com.br/gestao
+
+**👤 Login Padrão:**
+- Email: `admin@tumihortifruti.com.br`  
 - Senha: `admin123`
+- **⚠️ IMPORTANTE:** Mude a senha após primeiro login!
 
-**Comandos úteis:**
-- Ver status: `pm2 status`  
-- Ver logs: `pm2 logs tumi-gestao-api`
-- Reiniciar: `pm2 restart tumi-gestao-api`
-- Parar: `pm2 stop tumi-gestao-api`
+### 🚀 Comandos de Deploy Principais
 
-**⚠️ IMPORTANTE:** Mude a senha após primeiro login!
+| Método | Comando | Quando Usar |
+|--------|---------|-------------|
+| **GitHub** | `./scripts/github-deploy.sh` | Desenvolvimento contínuo (RECOMENDADO) |
+| **Local** | `./scripts/deploy-full.sh` | Deploy do Lovable |
+| **Rápido** | `./scripts/quick-deploy.sh` | Apenas rebuild |
+| **Manual** | Ver MÉTODO 3 | Troubleshooting |
+
+### 📋 Comandos de Monitoramento
+
+```bash
+# Status geral
+ssh root@31.97.129.119 'pm2 status'
+
+# Logs em tempo real  
+ssh root@31.97.129.119 'pm2 logs tumi-gestao-api'
+
+# Health check
+curl https://tumihortifruti.com.br/gestao/api/health
+
+# Reiniciar se necessário
+ssh root@31.97.129.119 'pm2 restart tumi-gestao-api'
+
+# Rollback de emergência
+ssh root@31.97.129.119 'cd /var/www/tumi/gestao && ./scripts/deploy-with-sync.sh --rollback'
+```
+
+### 🔧 Setup Inicial Rápido
+
+Para configurar o deploy automático pela primeira vez:
+
+```bash
+# 1. Dar permissões
+chmod +x scripts/*.sh
+
+# 2. Configurar GitHub (se usar MÉTODO 1)
+./scripts/setup-github-deploy.sh
+
+# 3. Fazer primeiro deploy
+./scripts/github-deploy.sh
+# OU
+./scripts/deploy-full.sh
+```
+
+---
+
+## 📚 DOCUMENTAÇÃO ADICIONAL
+
+- **DEPLOY-COMMANDS.md**: Lista completa de comandos
+- **DEPLOY-AUTOMÁTICO.md**: Guia detalhado do sistema automático  
+- **Scripts**: Pasta `scripts/` com todos os utilitários
+
+**✅ Sistema completo implementado e funcional!**
