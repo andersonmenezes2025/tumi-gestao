@@ -7,9 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCompany } from '@/hooks/useCompany';
-import { Tables } from '@/integrations/supabase/types';
-
-type Customer = Tables<'customers'>;
+import { Customer } from '@/types/database';
 
 interface CustomerFormProps {
   open: boolean;

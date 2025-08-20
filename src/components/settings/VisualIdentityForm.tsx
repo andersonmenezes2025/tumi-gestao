@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useCompany } from '@/hooks/useCompany';
 import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { Loader2, Upload, X } from 'lucide-react';
 
 const visualIdentitySchema = z.object({

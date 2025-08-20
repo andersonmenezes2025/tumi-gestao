@@ -1,9 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Calendar, User, DollarSign } from 'lucide-react';
-import { Tables } from '@/integrations/supabase/types';
-
-type Quote = Tables<'quotes'>;
+import { Quote } from '@/types/database';
 
 interface OrcamentosStatsProps {
   quotes: Quote[];

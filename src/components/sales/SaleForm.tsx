@@ -12,7 +12,7 @@ import { Plus, Trash2, Search, User, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
-import { Tables } from '@/integrations/supabase/types';
+import { Sale, Product, Customer } from '@/types/database';
 
 type Customer = Tables<'customers'>;
 type Product = Tables<'products'>;

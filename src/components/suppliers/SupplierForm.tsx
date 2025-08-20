@@ -7,9 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCompany } from '@/hooks/useCompany';
-import { Tables } from '@/integrations/supabase/types';
-
-type Supplier = Tables<'suppliers'>;
+import { Supplier } from '@/types/database';
 
 interface SupplierFormProps {
   open: boolean;

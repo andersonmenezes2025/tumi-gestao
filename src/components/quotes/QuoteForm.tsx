@@ -12,12 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
-import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
-
-type Quote = Tables<'quotes'>;
-type Product = Tables<'products'>;
-type Customer = Tables<'customers'>;
+import { apiClient } from '@/lib/api-client';
+import { Quote, Product, Customer } from '@/types/database';
 
 interface QuoteItem {
   id?: string;
@@ -86,12 +82,8 @@ export function QuoteForm({ open, onOpenChange, onSubmit, quote }: QuoteFormProp
 
   const loadQuoteItems = async (quoteId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('quote_items')
-        .select('*')
-        .eq('quote_id', quoteId);
-
-      if (error) throw error;
+      const response = await apiClient.get(`/data/quote_items?eq=quote_id.${quoteId}`);
+      const data = response.data;
 
       if (data && data.length > 0) {
         const loadedItems: QuoteItem[] = data.map(item => ({

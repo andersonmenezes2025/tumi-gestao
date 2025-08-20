@@ -10,12 +10,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { SaleForm } from '@/components/sales/SaleForm';
-import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
-
-type Sale = Tables<'sales'>;
-type Customer = Tables<'customers'>;
-type SaleItem = Tables<'sale_items'>;
+import { apiClient } from '@/lib/api-client';
+import { Sale, SaleItem, Product, Customer } from '@/types/database';
 
 export default function Vendas() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,19 +33,8 @@ export default function Vendas() {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('sales')
-        .select(`
-          *,
-          customers (
-            name
-          )
-        `)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSales(data || []);
+      const response = await apiClient.get(`/data/sales?eq=company_id.${companyId}&order=created_at.desc`);
+      setSales(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar vendas",
@@ -65,14 +50,8 @@ export default function Vendas() {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
-
-      if (error) throw error;
-      setCustomers(data || []);
+      const response = await apiClient.get(`/data/customers?eq=company_id.${companyId}&order=name`);
+      setCustomers(response.data || []);
     } catch (error: any) {
       console.error('Erro ao carregar clientes:', error);
     }
@@ -92,19 +71,8 @@ export default function Vendas() {
   const fetchSaleItems = async (saleId: string) => {
     setLoadingItems(true);
     try {
-      const { data, error } = await supabase
-        .from('sale_items')
-        .select(`
-          *,
-          products (
-            name,
-            unit
-          )
-        `)
-        .eq('sale_id', saleId);
-
-      if (error) throw error;
-      setSaleItems(data || []);
+      const response = await apiClient.get(`/data/sale_items?eq=sale_id.${saleId}`);
+      setSaleItems(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar itens da venda",
@@ -130,18 +98,15 @@ export default function Vendas() {
   const handleDeleteSale = async (sale: Sale) => {
     if (window.confirm(`Tem certeza que deseja excluir a venda ${sale.sale_number}?`)) {
       try {
-        const { error } = await supabase
-          .from('sales')
-          .delete()
-          .eq('id', sale.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Venda excluída com sucesso!",
-        });
+        const response = await apiClient.delete(`/data/sales/${sale.id}`);
         
-        fetchSales();
+        if (!response.error) {
+          toast({
+            title: "Venda excluída com sucesso!",
+          });
+          
+          fetchSales();
+        }
       } catch (error: any) {
         toast({
           title: "Erro ao excluir venda",

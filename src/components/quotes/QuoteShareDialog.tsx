@@ -7,9 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Copy, ExternalLink, Send, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuotes } from '@/hooks/useQuotes';
-import { Tables } from '@/integrations/supabase/types';
-
-type Quote = Tables<'quotes'>;
+import { Quote } from '@/types/database';
 
 interface QuoteShareDialogProps {
   quote: Quote | null;

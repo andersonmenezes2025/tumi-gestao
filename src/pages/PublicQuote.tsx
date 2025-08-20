@@ -6,12 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useParams } from 'react-router-dom';
 import { Building2, Mail, Phone, MessageSquare, CheckCircle, Plus, Trash2, ShoppingCart } from 'lucide-react';
-import { Tables } from '@/integrations/supabase/types';
-
-type Product = Tables<'products'>;
+import { Product, Company } from '@/types/database';
 
 interface QuoteItem {
   product_id: string | null;
@@ -59,19 +57,11 @@ export default function PublicQuote() {
     console.log('PublicQuote: Buscando empresa com ID:', companyId);
     
     try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', companyId)
-        .single();
+      const response = await apiClient.get(`/data/companies?eq=id.${companyId}`);
+      const data = response.data?.[0];
 
-      console.log('PublicQuote: Resultado da busca:', { data, error });
+      console.log('PublicQuote: Resultado da busca:', data);
 
-      if (error) {
-        console.error('PublicQuote: Erro ao buscar empresa:', error);
-        throw error;
-      }
-      
       if (!data) {
         console.error('PublicQuote: Empresa não encontrada para ID:', companyId);
         throw new Error('Empresa não encontrada');
@@ -95,15 +85,8 @@ export default function PublicQuote() {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('active', true)
-        .order('name');
-
-      if (error) throw error;
-      setProducts(data || []);
+      const response = await apiClient.get(`/data/products?eq=company_id.${companyId}&eq=active.true&order=name`);
+      setProducts(response.data || []);
     } catch (error: any) {
       console.error('Erro ao buscar produtos:', error);
     }
@@ -163,22 +146,19 @@ export default function PublicQuote() {
     setSubmitting(true);
     try {
       // Inserir o orçamento online
-      const { data: quoteData, error: quoteError } = await supabase
-        .from('online_quotes')
-        .insert([{
-          company_id: companyId,
-          customer_name: formData.customer_name,
-          customer_email: formData.customer_email,
-          customer_phone: formData.customer_phone || null,
-          company_name: formData.company_name || null,
-          message: formData.message || null,
-          observations: formData.observations || null,
-          status: 'pending'
-        }])
-        .select()
-        .single();
+      const quoteResponse = await apiClient.post('/data/online_quotes', {
+        company_id: companyId,
+        customer_name: formData.customer_name,
+        customer_email: formData.customer_email,
+        customer_phone: formData.customer_phone || null,
+        company_name: formData.company_name || null,
+        message: formData.message || null,
+        observations: formData.observations || null,
+        status: 'pending'
+      });
 
-      if (quoteError) throw quoteError;
+      if (quoteResponse.error) throw new Error(quoteResponse.error);
+      const quoteData = quoteResponse.data;
 
       // Inserir os itens do orçamento
       if (quoteData && validItems.length > 0) {
@@ -191,11 +171,9 @@ export default function PublicQuote() {
           total_price: item.total_price
         }));
 
-        const { error: itemsError } = await supabase
-          .from('online_quote_items')
-          .insert(itemsToInsert);
+        const itemsResponse = await apiClient.post('/data/online_quote_items', itemsToInsert);
 
-        if (itemsError) throw itemsError;
+        if (itemsResponse.error) throw new Error(itemsResponse.error);
       }
 
       setSubmitted(true);

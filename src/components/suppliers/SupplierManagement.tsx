@@ -9,9 +9,7 @@ import { Plus, Edit, Trash2, Building2 } from 'lucide-react';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCompany } from '@/hooks/useCompany';
 import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/integrations/supabase/types';
-
-type Supplier = Tables<'suppliers'>;
+import { Supplier } from '@/types/database';
 
 interface SupplierFormData {
   name: string;

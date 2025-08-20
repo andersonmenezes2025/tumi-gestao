@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
-import { Tables } from '@/integrations/supabase/types';
+import { ProductCategory } from '@/types/database';
 
 type ProductCategory = Tables<'product_categories'>;
 
@@ -41,22 +41,17 @@ export function CategoryForm({ open, onOpenChange, onSuccess, category }: Catego
 
       if (category) {
         // Update existing category
-        const { error } = await supabase
-          .from('product_categories')
-          .update(categoryData)
-          .eq('id', category.id);
+        const response = await apiClient.put(`/data/product_categories/${category.id}`, categoryData);
 
-        if (error) throw error;
+        if (response.error) throw new Error(response.error);
         toast({
           title: "Categoria atualizada com sucesso!",
         });
       } else {
         // Create new category
-        const { error } = await supabase
-          .from('product_categories')
-          .insert([categoryData]);
+        const response = await apiClient.post('/data/product_categories', categoryData);
 
-        if (error) throw error;
+        if (response.error) throw new Error(response.error);
         toast({
           title: "Categoria criada com sucesso!",
         });

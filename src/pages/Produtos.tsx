@@ -45,9 +45,7 @@ import { ProductPurchaseForm } from '@/components/products/ProductPurchaseForm';
 import { ProductPurchasesList } from '@/components/products/ProductPurchasesList';
 import { UnitManagement } from '@/components/products/UnitManagement';
 import { SupplierManagement } from '@/components/suppliers/SupplierManagement';
-import { Tables } from '@/integrations/supabase/types';
-
-type Product = Tables<'products'>;
+import { Product, ProductCategory, ProductUnit } from '@/types/database';
 
 const Produtos: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');

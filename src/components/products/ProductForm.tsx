@@ -10,10 +10,7 @@ import { ProductDetailsFields } from './ProductDetailsFields';
 import { ProductProfitMarginFields } from './ProductProfitMarginFields';
 import { ProductSKUField } from './ProductSKUField';
 import { ProductImageUpload } from './ProductImageUpload';
-import { Tables } from '@/integrations/supabase/types';
-
-type Product = Tables<'products'>;
-type ProductCategory = Tables<'product_categories'>;
+import { Product, ProductCategory, ProductUnit } from '@/types/database';
 
 interface ProductFormProps {
   open: boolean;

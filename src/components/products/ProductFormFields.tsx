@@ -9,10 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { SupplierForm } from '@/components/suppliers/SupplierForm';
-import { Tables } from '@/integrations/supabase/types';
-
-type ProductCategory = Tables<'product_categories'>;
-type Supplier = Tables<'suppliers'>;
+import { ProductCategory, ProductUnit } from '@/types/database';
 
 interface ProductFormData {
   name: string;
@@ -36,7 +33,7 @@ export function ProductFormFields({ formData, setFormData, categories, errors }:
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const { suppliers } = useSuppliers();
 
-  const handleSupplierCreated = (supplier: Supplier) => {
+  const handleSupplierCreated = (supplier: any) => {
     setFormData(prev => ({ ...prev, supplier_id: supplier.id }));
     setShowSupplierForm(false);
   };

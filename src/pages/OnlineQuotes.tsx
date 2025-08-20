@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
 import { 
   Search, 
@@ -23,9 +23,7 @@ import {
   Copy,
   ExternalLink
 } from 'lucide-react';
-import { Tables } from '@/integrations/supabase/types';
-
-type OnlineQuote = Tables<'online_quotes'>;
+import { OnlineQuote, OnlineQuoteItem } from '@/types/database';
 
 export default function OnlineQuotes() {
   const [quotes, setQuotes] = useState<OnlineQuote[]>([]);
@@ -48,24 +46,8 @@ export default function OnlineQuotes() {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('online_quotes')
-        .select(`
-          *,
-          online_quote_items (
-            id,
-            product_id,
-            product_name,
-            quantity,
-            unit_price,
-            total_price
-          )
-        `)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setQuotes(data || []);
+      const response = await apiClient.get(`/data/online_quotes?eq=company_id.${companyId}&order=created_at.desc`);
+      setQuotes(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar solicitações",
@@ -79,21 +61,18 @@ export default function OnlineQuotes() {
 
   const updateQuoteStatus = async (quoteId: string, status: string) => {
     try {
-      const { error } = await supabase
-        .from('online_quotes')
-        .update({ status })
-        .eq('id', quoteId);
+      const response = await apiClient.put(`/data/online_quotes/${quoteId}`, { status });
+      
+      if (!response.error) {
+        setQuotes(prev => prev.map(q => 
+          q.id === quoteId ? { ...q, status } : q
+        ));
 
-      if (error) throw error;
-
-      setQuotes(prev => prev.map(q => 
-        q.id === quoteId ? { ...q, status } : q
-      ));
-
-      toast({
-        title: "Status atualizado!",
-        description: `Solicitação marcada como ${getStatusLabel(status)}.`,
-      });
+        toast({
+          title: "Status atualizado!",
+          description: `Solicitação marcada como ${getStatusLabel(status)}.`,
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar status",

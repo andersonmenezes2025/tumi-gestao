@@ -12,9 +12,7 @@ import { OrcamentosFilters } from '@/components/orcamentos/OrcamentosFilters';
 import { OrcamentosList } from '@/components/orcamentos/OrcamentosList';
 import { OrcamentosConfig } from '@/components/orcamentos/OrcamentosConfig';
 import OnlineQuotes from '@/pages/OnlineQuotes';
-import { Tables } from '@/integrations/supabase/types';
-
-type Quote = Tables<'quotes'>;
+import { Quote, QuoteItem } from '@/types/database';
 
 const Orcamentos: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');

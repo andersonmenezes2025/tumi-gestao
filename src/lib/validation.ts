@@ -1,8 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
-
-type Product = Tables<'products'>;
-type Customer = Tables<'customers'>;
+import { apiClient } from '@/lib/api-client';
+import { Customer, Product } from '@/types/database';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -132,13 +129,10 @@ export const validateStock = async (
 // Verificar se a empresa existe e está ativa
 export const validateCompany = async (companyId: string): Promise<ValidationResult> => {
   try {
-    const { data: company, error } = await supabase
-      .from('companies')
-      .select('id, name')
-      .eq('id', companyId)
-      .single();
+    const response = await apiClient.get(`/data/companies?eq=id.${companyId}`);
+    const company = response.data?.[0];
 
-    if (error || !company) {
+    if (!company) {
       return {
         isValid: false,
         errors: ['Empresa não encontrada']

@@ -2,9 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Send, Edit, Trash2 } from 'lucide-react';
-import { Tables } from '@/integrations/supabase/types';
-
-type Quote = Tables<'quotes'>;
+import { Quote, QuoteItem } from '@/types/database';
 
 interface OrcamentosListProps {
   quotes: Quote[];

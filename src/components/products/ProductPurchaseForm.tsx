@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
 import { useSuppliers } from '@/hooks/useSuppliers';
-import { Tables } from '@/integrations/supabase/types';
+import { Product, Supplier, ProductPurchase } from '@/types/database';
 
 type Product = Tables<'products'>;
 type Supplier = Tables<'suppliers'>;

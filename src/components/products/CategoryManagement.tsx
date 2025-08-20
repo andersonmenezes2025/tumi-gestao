@@ -5,10 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { CategoryForm } from './CategoryForm';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
-
-type ProductCategory = Tables<'product_categories'>;
+import { apiClient } from '@/lib/api-client';
+import { ProductCategory } from '@/types/database';
 
 interface CategoryManagementProps {
   categories: ProductCategory[];
@@ -31,12 +29,9 @@ export function CategoryManagement({ categories, onRefresh }: CategoryManagement
     }
 
     try {
-      const { error } = await supabase
-        .from('product_categories')
-        .delete()
-        .eq('id', category.id);
-
-      if (error) throw error;
+      const response = await apiClient.delete(`/data/product_categories/${category.id}`);
+      
+      if (response.error) throw response.error;
       
       toast({
         title: "Categoria removida com sucesso!",

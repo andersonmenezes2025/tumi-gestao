@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { 
   CheckCircle, 
   XCircle, 
@@ -63,7 +63,12 @@ export function SystemHealthCheck() {
 
     // 4. Testar conexão com banco de dados
     try {
-      const { error } = await supabase.from('profiles').select('count').limit(1);
+      const response = await apiClient.get('/auth/health');
+      
+      return {
+        status: response.data ? 'success' : 'error',
+        message: response.data ? 'API funcionando' : 'Erro na API',
+      };
       healthChecks.push({
         name: 'Conexão com Banco',
         status: error ? 'error' : 'success',
@@ -83,7 +88,7 @@ export function SystemHealthCheck() {
     const tables: TableName[] = ['companies', 'profiles', 'products', 'customers'];
     for (const table of tables) {
       try {
-        const { error } = await supabase.from(table).select('count').limit(1);
+        const response = await apiClient.get(`/data/${table}?limit=1`);
         healthChecks.push({
           name: `Tabela: ${table}`,
           status: error ? 'error' : 'success',

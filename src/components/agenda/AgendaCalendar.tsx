@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { useCompany } from '@/hooks/useCompany';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 
 import 'react-big-calendar/lib/css/react-big-calendar.css';

@@ -36,9 +36,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerForm } from '@/components/customers/CustomerForm';
-import { Tables } from '@/integrations/supabase/types';
-
-type Customer = Tables<'customers'>;
+import { Customer } from '@/types/database';
 
 const Clientes: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
