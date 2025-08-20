@@ -35,6 +35,44 @@ export interface Company {
   updated_at?: string;
 }
 
+export interface Integration {
+  id: string;
+  company_id: string;
+  type: string;
+  name: string;
+  config: any;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIInsight {
+  id: string;
+  company_id: string;
+  type: string;
+  priority: string;
+  status: string;
+  title: string;
+  description: string;
+  confidence_score?: number;
+  data: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutomationFlow {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string;
+  trigger_type: string;
+  trigger_config: any;
+  actions: any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Product {
   id: string;
   company_id: string;

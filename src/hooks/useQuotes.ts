@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompany } from '@/hooks/useCompany';
-import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/integrations/supabase/types';
-
-type Quote = Tables<'quotes'>;
-type QuoteItem = Tables<'quote_items'>;
+import { apiClient } from '@/lib/api-client';
+import { useCompany } from './useCompany';
+import { useToast } from './use-toast';
+import { Quote } from '@/types/database';
 
 export function useQuotes() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const { companyId } = useCompany();
   const { toast } = useToast();
 
@@ -17,58 +15,40 @@ export function useQuotes() {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setQuotes(data || []);
+      const response = await apiClient.get(`/data/quotes?company_id=${companyId}&order=created_at:desc`);
+      setQuotes(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar orçamentos",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const createQuote = async (quote: Omit<Quote, 'id' | 'created_at' | 'updated_at'>, items?: any[]) => {
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .insert([quote])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.post('/data/quotes', quote);
       
       // Save quote items if provided
       if (items && items.length > 0) {
-        const quoteItems = items.map(item => ({
-          quote_id: data.id,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total_price
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('quote_items')
-          .insert(quoteItems);
-
-        if (itemsError) throw itemsError;
+        for (const item of items) {
+          await apiClient.post('/data/quote_items', {
+            quote_id: response.data.id,
+            ...item,
+          });
+        }
       }
-      
-      setQuotes(prev => [data, ...prev]);
+
+      setQuotes(prev => [response.data, ...prev]);
       toast({
         title: "Orçamento criado com sucesso!",
         description: `Orçamento para ${quote.customer_name} foi criado.`,
       });
       
-      return data;
+      return response.data;
     } catch (error: any) {
       toast({
         title: "Erro ao criar orçamento",
@@ -81,48 +61,28 @@ export function useQuotes() {
 
   const updateQuote = async (id: string, updates: Partial<Quote>, items?: any[]) => {
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.put(`/data/quotes/${id}`, updates);
       
       // Update quote items if provided
       if (items) {
         // Delete existing items
-        await supabase
-          .from('quote_items')
-          .delete()
-          .eq('quote_id', id);
-
-        // Insert new items
-        if (items.length > 0) {
-          const quoteItems = items.map(item => ({
+        await apiClient.delete(`/data/quote_items?quote_id=${id}`);
+        
+        // Add new items
+        for (const item of items) {
+          await apiClient.post('/data/quote_items', {
             quote_id: id,
-            product_id: item.product_id,
-            product_name: item.product_name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price
-          }));
-
-          const { error: itemsError } = await supabase
-            .from('quote_items')
-            .insert(quoteItems);
-
-          if (itemsError) throw itemsError;
+            ...item,
+          });
         }
       }
-      
-      setQuotes(prev => prev.map(q => q.id === id ? data : q));
+
+      setQuotes(prev => prev.map(q => q.id === id ? response.data : q));
       toast({
         title: "Orçamento atualizado com sucesso!",
       });
       
-      return data;
+      return response.data;
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar orçamento",
@@ -135,12 +95,7 @@ export function useQuotes() {
 
   const deleteQuote = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('quotes')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.delete(`/data/quotes/${id}`);
       
       setQuotes(prev => prev.filter(q => q.id !== id));
       toast({
@@ -159,27 +114,20 @@ export function useQuotes() {
   const generateShareLink = async (quoteId: string) => {
     try {
       // Generate a public token for the quote
-      const { data: tokenData, error: tokenError } = await supabase
-        .rpc('generate_quote_token');
+      const publicToken = `quote-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      if (tokenError) throw tokenError;
+      await apiClient.put(`/data/quotes/${quoteId}`, {
+        public_token: publicToken,
+      });
 
-      // Update the quote with the public token
-      const { data, error } = await supabase
-        .from('quotes')
-        .update({ public_token: tokenData })
-        .eq('id', quoteId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
+      const shareLink = `${window.location.origin}/quote/${publicToken}`;
+      
       // Update local state
-      setQuotes(prev => prev.map(q => q.id === quoteId ? data : q));
+      setQuotes(prev => prev.map(q => 
+        q.id === quoteId ? { ...q, public_token: publicToken } : q
+      ));
 
-      // Return the public URL
-      const baseUrl = window.location.origin;
-      return `${baseUrl}/quote/${tokenData}`;
+      return shareLink;
     } catch (error: any) {
       toast({
         title: "Erro ao gerar link",
@@ -192,9 +140,7 @@ export function useQuotes() {
 
   useEffect(() => {
     if (companyId) {
-      fetchQuotes().finally(() => {
-        setLoading(false);
-      });
+      fetchQuotes();
     }
   }, [companyId]);
 

@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from './useCompany';
 import { useToast } from './use-toast';
-import { Tables } from '@/integrations/supabase/types';
-
-type AccountsReceivable = Tables<'accounts_receivable'>;
-type AccountsPayable = Tables<'accounts_payable'>;
+import { AccountsReceivable, AccountsPayable } from '@/types/database';
 
 interface FinancialSummary {
   totalReceivables: number;
@@ -20,7 +17,7 @@ interface FinancialSummary {
 export function useFinancial() {
   const [receivables, setReceivables] = useState<AccountsReceivable[]>([]);
   const [payables, setPayables] = useState<AccountsPayable[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<FinancialSummary>({
     totalReceivables: 0,
     totalPayables: 0,
@@ -30,71 +27,61 @@ export function useFinancial() {
     pendingReceivables: 0,
     pendingPayables: 0,
   });
-  
+
   const { companyId } = useCompany();
   const { toast } = useToast();
 
+  const calculateSummary = (receivablesData: AccountsReceivable[], payablesData: AccountsPayable[]) => {
+    const totalReceivables = receivablesData.reduce((sum, item) => sum + item.amount, 0);
+    const totalPayables = payablesData.reduce((sum, item) => sum + item.amount, 0);
+    
+    const totalReceived = receivablesData
+      .filter(item => item.status === 'paid')
+      .reduce((sum, item) => sum + (item.payment_amount || item.amount), 0);
+    
+    const totalPaid = payablesData
+      .filter(item => item.status === 'paid')
+      .reduce((sum, item) => sum + (item.payment_amount || item.amount), 0);
+    
+    const pendingReceivables = receivablesData
+      .filter(item => item.status === 'pending')
+      .reduce((sum, item) => sum + item.amount, 0);
+    
+    const pendingPayables = payablesData
+      .filter(item => item.status === 'pending')
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    return {
+      totalReceivables,
+      totalPayables,
+      totalReceived,
+      totalPaid,
+      balance: totalReceived - totalPaid,
+      pendingReceivables,
+      pendingPayables,
+    };
+  };
+
   const fetchFinancialData = async () => {
     if (!companyId) return;
-    
+
     setLoading(true);
     try {
-      // Fetch accounts receivable
-      const { data: receivablesData, error: receivablesError } = await supabase
-        .from('accounts_receivable')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('due_date', { ascending: false });
+      const [receivablesRes, payablesRes] = await Promise.all([
+        apiClient.get(`/data/accounts_receivable?company_id=${companyId}&order=due_date:desc`),
+        apiClient.get(`/data/accounts_payable?company_id=${companyId}&order=due_date:desc`)
+      ]);
 
-      if (receivablesError) throw receivablesError;
-      
-      // Fetch accounts payable
-      const { data: payablesData, error: payablesError } = await supabase
-        .from('accounts_payable')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('due_date', { ascending: false });
+      const receivablesData = receivablesRes.data || [];
+      const payablesData = payablesRes.data || [];
 
-      if (payablesError) throw payablesError;
-
-      setReceivables(receivablesData || []);
-      setPayables(payablesData || []);
-
-      // Calculate summary
-      const totalReceivables = receivablesData?.reduce((sum, r) => sum + r.amount, 0) || 0;
-      const totalPayables = payablesData?.reduce((sum, p) => sum + p.amount, 0) || 0;
-      
-      const totalReceived = receivablesData?.reduce((sum, r) => {
-        return sum + (r.status === 'paid' ? (r.payment_amount || r.amount) : 0);
-      }, 0) || 0;
-      
-      const totalPaid = payablesData?.reduce((sum, p) => {
-        return sum + (p.status === 'paid' ? (p.payment_amount || p.amount) : 0);
-      }, 0) || 0;
-
-      const pendingReceivables = receivablesData?.reduce((sum, r) => {
-        return sum + (r.status === 'pending' ? r.amount : 0);
-      }, 0) || 0;
-      
-      const pendingPayables = payablesData?.reduce((sum, p) => {
-        return sum + (p.status === 'pending' ? p.amount : 0);
-      }, 0) || 0;
-
-      setSummary({
-        totalReceivables,
-        totalPayables,
-        totalReceived,
-        totalPaid,
-        balance: totalReceived - totalPaid,
-        pendingReceivables,
-        pendingPayables,
-      });
-
-    } catch (error) {
-      console.error('Error fetching financial data:', error);
+      setReceivables(receivablesData);
+      setPayables(payablesData);
+      setSummary(calculateSummary(receivablesData, payablesData));
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao buscar dados financeiros",
+        description: "Erro ao carregar dados financeiros",
         variant: "destructive",
       });
     } finally {
@@ -103,122 +90,104 @@ export function useFinancial() {
   };
 
   const createReceivable = async (receivable: Omit<AccountsReceivable, 'id' | 'created_at' | 'updated_at' | 'company_id'>) => {
-    if (!companyId) return null;
+    if (!companyId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('accounts_receivable')
-        .insert([{ ...receivable, company_id: companyId }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.post('/data/accounts_receivable', {
+        ...receivable,
+        company_id: companyId,
+        status: 'pending',
+      });
 
       toast({
-        title: "Sucesso",
-        description: "Conta a receber criada com sucesso",
+        title: "Conta a receber criada",
+        description: "Nova conta a receber foi adicionada com sucesso!",
       });
 
       await fetchFinancialData();
-      return data;
-    } catch (error) {
-      console.error('Error creating receivable:', error);
+      return response.data;
+    } catch (error: any) {
       toast({
         title: "Erro",
         description: "Erro ao criar conta a receber",
         variant: "destructive",
       });
-      return null;
+      throw error;
     }
   };
 
   const createPayable = async (payable: Omit<AccountsPayable, 'id' | 'created_at' | 'updated_at' | 'company_id'>) => {
-    if (!companyId) return null;
+    if (!companyId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('accounts_payable')
-        .insert([{ ...payable, company_id: companyId }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.post('/data/accounts_payable', {
+        ...payable,
+        company_id: companyId,
+        status: 'pending',
+      });
 
       toast({
-        title: "Sucesso",
-        description: "Conta a pagar criada com sucesso",
+        title: "Conta a pagar criada",
+        description: "Nova conta a pagar foi adicionada com sucesso!",
       });
 
       await fetchFinancialData();
-      return data;
-    } catch (error) {
-      console.error('Error creating payable:', error);
+      return response.data;
+    } catch (error: any) {
       toast({
         title: "Erro",
         description: "Erro ao criar conta a pagar",
         variant: "destructive",
       });
-      return null;
+      throw error;
     }
   };
 
   const markReceivableAsPaid = async (id: string, paymentAmount?: number, paymentDate?: string) => {
     try {
-      const { error } = await supabase
-        .from('accounts_receivable')
-        .update({
-          status: 'paid',
-          payment_amount: paymentAmount,
-          payment_date: paymentDate || new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.put(`/data/accounts_receivable/${id}`, {
+        status: 'paid',
+        payment_amount: paymentAmount,
+        payment_date: paymentDate || new Date().toISOString(),
+      });
 
       toast({
-        title: "Sucesso",
-        description: "Conta marcada como paga",
+        title: "Pagamento registrado",
+        description: "Conta a receber marcada como paga!",
       });
 
       await fetchFinancialData();
-    } catch (error) {
-      console.error('Error marking receivable as paid:', error);
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao marcar conta como paga",
+        description: "Erro ao marcar como paga",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
   const markPayableAsPaid = async (id: string, paymentAmount?: number, paymentDate?: string) => {
     try {
-      const { error } = await supabase
-        .from('accounts_payable')
-        .update({
-          status: 'paid',
-          payment_amount: paymentAmount,
-          payment_date: paymentDate || new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.put(`/data/accounts_payable/${id}`, {
+        status: 'paid',
+        payment_amount: paymentAmount,
+        payment_date: paymentDate || new Date().toISOString(),
+      });
 
       toast({
-        title: "Sucesso",
-        description: "Conta marcada como paga",
+        title: "Pagamento registrado",
+        description: "Conta a pagar marcada como paga!",
       });
 
       await fetchFinancialData();
-    } catch (error) {
-      console.error('Error marking payable as paid:', error);
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao marcar conta como paga",
+        description: "Erro ao marcar como paga",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
@@ -237,6 +206,6 @@ export function useFinancial() {
     createPayable,
     markReceivableAsPaid,
     markPayableAsPaid,
-    refreshData: fetchFinancialData,
+    refreshFinancialData: fetchFinancialData,
   };
 }

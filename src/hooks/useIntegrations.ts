@@ -2,16 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useCompany } from './useCompany';
 
-interface Integration {
-  id: string;
-  company_id: string;
-  type: string;
-  name: string;
-  config: any;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { Integration } from '@/types/database';
 
 
 

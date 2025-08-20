@@ -57,14 +57,7 @@ export function UserSettings() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(sanitizedData)
-        .eq('id', user.id);
-
-      if (error) {
-        throw new Error('Erro ao atualizar perfil');
-      }
+      await apiClient.put(`/data/profiles/${user.id}`, sanitizedData);
 
       await refreshProfile();
       

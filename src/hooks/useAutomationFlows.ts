@@ -3,18 +3,7 @@ import { apiClient } from '@/lib/api-client';
 import { useCompany } from './useCompany';
 import { useToast } from './use-toast';
 
-interface AutomationFlow {
-  id: string;
-  company_id: string;
-  name: string;
-  description?: string;
-  trigger_type: string;
-  trigger_config: any;
-  actions: any;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { AutomationFlow } from '@/types/database';
 
 export function useAutomationFlows() {
   const { companyId } = useCompany();

@@ -48,15 +48,15 @@ export function N8NConfigDialog({ open, onOpenChange, type }: N8NConfigDialogPro
   useEffect(() => {
     if (open) {
       const existing = getIntegrationByType(type);
-      if (existing?.settings && typeof existing.settings === 'object') {
-        const settings = existing.settings as any;
+      if (existing?.config && typeof existing.config === 'object') {
+        const config = existing.config as any;
         setConfig({
-          instanceUrl: settings.instanceUrl || '',
-          apiKey: settings.apiKey || '',
-          webhookUrl: settings.webhookUrl || '',
-          workflowId: settings.workflowId || '',
-          description: settings.description || '',
-          phoneNumber: settings.phoneNumber || ''
+          instanceUrl: config.instanceUrl || '',
+          apiKey: config.apiKey || '',
+          webhookUrl: config.webhookUrl || '',
+          workflowId: config.workflowId || '',
+          description: config.description || '',
+          phoneNumber: config.phoneNumber || ''
         });
       }
     }
@@ -148,7 +148,7 @@ export function N8NConfigDialog({ open, onOpenChange, type }: N8NConfigDialogPro
         type,
         name: integrationName,
         active: true,
-        settings: config,
+        config: config,
         company_id: companyId!
       };
 

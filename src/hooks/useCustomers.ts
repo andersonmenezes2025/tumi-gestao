@@ -1,11 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
 import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/integrations/supabase/types';
+import { Customer } from '@/types/database';
 
-type Customer = Tables<'customers'>;
+
 
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -17,14 +17,8 @@ export function useCustomers() {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
-
-      if (error) throw error;
-      setCustomers(data || []);
+      const response = await apiClient.get(`/data/customers?company_id=${companyId}&order=name:asc`);
+      setCustomers(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar clientes",
@@ -36,21 +30,15 @@ export function useCustomers() {
 
   const createCustomer = async (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .insert([customer])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.post('/data/customers', customer);
       
-      setCustomers(prev => [...prev, data]);
+      setCustomers(prev => [...prev, response.data]);
       toast({
         title: "Cliente criado com sucesso!",
         description: `${customer.name} foi adicionado à base de clientes.`,
       });
       
-      return data;
+      return response.data;
     } catch (error: any) {
       toast({
         title: "Erro ao criar cliente",

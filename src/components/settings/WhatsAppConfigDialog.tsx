@@ -48,20 +48,20 @@ export function WhatsAppConfigDialog({ open, onOpenChange }: WhatsAppConfigDialo
   useEffect(() => {
     if (open) {
       const existing = getIntegrationByType('whatsapp_n8n');
-      if (existing?.settings && typeof existing.settings === 'object') {
-        const settings = existing.settings as any;
+      if (existing?.config && typeof existing.config === 'object') {
+        const config = existing.config as any;
         setConfig({
-          phoneNumber: settings.phoneNumber || '',
-          provider: settings.provider || 'whatsapp_business',
-          accessToken: settings.accessToken || '',
-          appSecret: settings.appSecret || '',
-          webhookUrl: settings.webhookUrl || '',
-          verifyToken: settings.verifyToken || '',
-          businessAccountId: settings.businessAccountId || '',
-          phoneNumberId: settings.phoneNumberId || '',
-          autoReply: settings.autoReply ?? true,
-          autoReplyMessage: settings.autoReplyMessage || 'Olá! Recebemos sua mensagem e retornaremos em breve.',
-          description: settings.description || ''
+          phoneNumber: config.phoneNumber || '',
+          provider: config.provider || 'whatsapp_business',
+          accessToken: config.accessToken || '',
+          appSecret: config.appSecret || '',
+          webhookUrl: config.webhookUrl || '',
+          verifyToken: config.verifyToken || '',
+          businessAccountId: config.businessAccountId || '',
+          phoneNumberId: config.phoneNumberId || '',
+          autoReply: config.autoReply ?? true,
+          autoReplyMessage: config.autoReplyMessage || 'Olá! Recebemos sua mensagem e retornaremos em breve.',
+          description: config.description || ''
         });
       }
     }
@@ -161,7 +161,7 @@ export function WhatsAppConfigDialog({ open, onOpenChange }: WhatsAppConfigDialo
         type: 'whatsapp_n8n' as const,
         name: 'WhatsApp (N8N)',
         active: true,
-        settings: config,
+        config: config,
         company_id: companyId!
       };
 

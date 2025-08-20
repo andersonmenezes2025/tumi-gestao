@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
 import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/integrations/supabase/types';
+import { Supplier } from '@/types/database';
 
-type Supplier = Tables<'suppliers'>;
+
 
 export function useSuppliers() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -16,14 +16,8 @@ export function useSuppliers() {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
-
-      if (error) throw error;
-      setSuppliers(data || []);
+      const response = await apiClient.get(`/data/suppliers?company_id=${companyId}&order=name:asc`);
+      setSuppliers(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar fornecedores",
@@ -35,21 +29,15 @@ export function useSuppliers() {
 
   const createSupplier = async (supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .insert([supplier])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.post('/data/suppliers', supplier);
       
-      setSuppliers(prev => [...prev, data]);
+      setSuppliers(prev => [...prev, response.data]);
       toast({
         title: "Fornecedor criado com sucesso!",
         description: `${supplier.name} foi adicionado.`,
       });
       
-      return data;
+      return response.data;
     } catch (error: any) {
       toast({
         title: "Erro ao criar fornecedor",
@@ -62,21 +50,14 @@ export function useSuppliers() {
 
   const updateSupplier = async (id: string, updates: Partial<Supplier>) => {
     try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.put(`/data/suppliers/${id}`, updates);
       
-      setSuppliers(prev => prev.map(s => s.id === id ? data : s));
+      setSuppliers(prev => prev.map(s => s.id === id ? response.data : s));
       toast({
         title: "Fornecedor atualizado com sucesso!",
       });
       
-      return data;
+      return response.data;
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar fornecedor",
@@ -89,12 +70,7 @@ export function useSuppliers() {
 
   const deleteSupplier = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('suppliers')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.delete(`/data/suppliers/${id}`);
       
       setSuppliers(prev => prev.filter(s => s.id !== id));
       toast({

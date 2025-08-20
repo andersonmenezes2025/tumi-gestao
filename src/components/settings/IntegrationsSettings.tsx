@@ -51,11 +51,11 @@ export function IntegrationsSettings() {
   // Load existing social media settings
   useEffect(() => {
     const socialIntegration = getIntegrationByType('social_media');
-    if (socialIntegration?.settings && typeof socialIntegration.settings === 'object') {
-      const settings = socialIntegration.settings as { facebookUrl?: string; instagramUrl?: string };
+    if (socialIntegration?.config && typeof socialIntegration.config === 'object') {
+      const config = socialIntegration.config as { facebookUrl?: string; instagramUrl?: string };
       setSocialSettings({
-        facebookUrl: settings.facebookUrl || '',
-        instagramUrl: settings.instagramUrl || ''
+        facebookUrl: config.facebookUrl || '',
+        instagramUrl: config.instagramUrl || ''
       });
     }
   }, [integrations, getIntegrationByType]);
@@ -108,7 +108,7 @@ export function IntegrationsSettings() {
           type,
           name: getIntegrationName(type),
           active: enabled,
-          settings: {},
+          config: {},
           company_id: companyId!
         });
       }
@@ -137,7 +137,7 @@ export function IntegrationsSettings() {
         type: 'social_media',
         name: 'Redes Sociais',
         active: !!(socialSettings.facebookUrl || socialSettings.instagramUrl),
-        settings: socialSettings,
+        config: socialSettings,
         company_id: companyId!
       };
 
@@ -171,7 +171,7 @@ export function IntegrationsSettings() {
         type: 'google_calendar',
         name: 'Google Calendar',
         active: true,
-        settings: {
+        config: {
           configured_at: new Date().toISOString()
         },
         company_id: companyId!

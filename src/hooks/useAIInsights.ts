@@ -3,18 +3,7 @@ import { apiClient } from '@/lib/api-client';
 import { useCompany } from './useCompany';
 import { useToast } from './use-toast';
 
-interface AIInsight {
-  id: string;
-  company_id: string;
-  type: string;
-  priority: string;
-  status: string;
-  title: string;
-  description: string;
-  data: any;
-  created_at: string;
-  updated_at: string;
-}
+import { AIInsight } from '@/types/database';
 
 export function useAIInsights() {
   const { companyId } = useCompany();

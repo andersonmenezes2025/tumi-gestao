@@ -43,16 +43,16 @@ export function StripeConfigDialog({ open, onOpenChange }: StripeConfigDialogPro
   useEffect(() => {
     if (open) {
       const existing = getIntegrationByType('stripe_payments');
-      if (existing?.settings && typeof existing.settings === 'object') {
-        const settings = existing.settings as any;
+      if (existing?.config && typeof existing.config === 'object') {
+        const config = existing.config as any;
         setConfig({
-          publishableKey: settings.publishableKey || '',
-          secretKey: settings.secretKey || '',
-          webhookEndpoint: settings.webhookEndpoint || '',
-          webhookSecret: settings.webhookSecret || '',
-          environment: settings.environment || 'test',
-          currency: settings.currency || 'BRL',
-          description: settings.description || ''
+          publishableKey: config.publishableKey || '',
+          secretKey: config.secretKey || '',
+          webhookEndpoint: config.webhookEndpoint || '',
+          webhookSecret: config.webhookSecret || '',
+          environment: config.environment || 'test',
+          currency: config.currency || 'BRL',
+          description: config.description || ''
         });
       }
     }
@@ -143,7 +143,7 @@ export function StripeConfigDialog({ open, onOpenChange }: StripeConfigDialogPro
         type: 'stripe_payments' as const,
         name: 'Stripe Pagamentos',
         active: true,
-        settings: config,
+        config: config,
         company_id: companyId!
       };
 

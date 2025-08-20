@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { Tables } from '@/integrations/supabase/types';
+import { Product } from '@/types/database';
 
-type Product = Tables<'products'>;
+
 
 interface ProductFormData {
   name: string;

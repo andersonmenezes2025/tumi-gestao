@@ -48,20 +48,20 @@ export function EmailMarketingConfigDialog({ open, onOpenChange }: EmailMarketin
   useEffect(() => {
     if (open) {
       const existing = getIntegrationByType('email_marketing');
-      if (existing?.settings && typeof existing.settings === 'object') {
-        const settings = existing.settings as any;
+      if (existing?.config && typeof existing.config === 'object') {
+        const config = existing.config as any;
         setConfig({
-          smtpHost: settings.smtpHost || '',
-          smtpPort: settings.smtpPort || '587',
-          smtpSecure: settings.smtpSecure ?? true,
-          smtpUser: settings.smtpUser || '',
-          smtpPassword: settings.smtpPassword || '',
-          fromName: settings.fromName || '',
-          fromEmail: settings.fromEmail || '',
-          replyToEmail: settings.replyToEmail || '',
-          provider: settings.provider || 'smtp',
-          apiKey: settings.apiKey || '',
-          description: settings.description || ''
+          smtpHost: config.smtpHost || '',
+          smtpPort: config.smtpPort || '587',
+          smtpSecure: config.smtpSecure ?? true,
+          smtpUser: config.smtpUser || '',
+          smtpPassword: config.smtpPassword || '',
+          fromName: config.fromName || '',
+          fromEmail: config.fromEmail || '',
+          replyToEmail: config.replyToEmail || '',
+          provider: config.provider || 'smtp',
+          apiKey: config.apiKey || '',
+          description: config.description || ''
         });
       }
     }
@@ -170,7 +170,7 @@ export function EmailMarketingConfigDialog({ open, onOpenChange }: EmailMarketin
         type: 'email_marketing' as const,
         name: 'Email Marketing',
         active: true,
-        settings: config,
+        config: config,
         company_id: companyId!
       };
 
