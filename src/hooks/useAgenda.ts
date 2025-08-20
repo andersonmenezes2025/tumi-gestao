@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from './useCompany';
 import { useToast } from './use-toast';
-import { Tables } from '@/integrations/supabase/types';
-
-type AgendaEvent = Tables<'agenda_events'>;
+import { AgendaEvent } from '@/types/database';
 
 interface CreateEventData {
   title: string;
@@ -28,14 +26,8 @@ export function useAgenda() {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('agenda_events')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('start_date', { ascending: true });
-
-      if (error) throw error;
-      setEvents(data || []);
+      const response = await apiClient.get(`/data/agenda_events?company_id=${companyId}&order=start_date:asc`);
+      setEvents(response.data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({
@@ -52,17 +44,10 @@ export function useAgenda() {
     if (!companyId) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('agenda_events')
-        .insert([{
-          ...eventData,
-          company_id: companyId,
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.post('/data/agenda_events', {
+        ...eventData,
+        company_id: companyId,
+      });
 
       toast({
         title: "Sucesso",
@@ -70,7 +55,7 @@ export function useAgenda() {
       });
 
       await fetchEvents();
-      return data;
+      return response.data;
     } catch (error) {
       console.error('Error creating event:', error);
       toast({
@@ -84,14 +69,7 @@ export function useAgenda() {
 
   const updateEvent = async (id: string, eventData: Partial<CreateEventData>) => {
     try {
-      const { data, error } = await supabase
-        .from('agenda_events')
-        .update(eventData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.put(`/data/agenda_events/${id}`, eventData);
 
       toast({
         title: "Sucesso",
@@ -99,7 +77,7 @@ export function useAgenda() {
       });
 
       await fetchEvents();
-      return data;
+      return response.data;
     } catch (error) {
       console.error('Error updating event:', error);
       toast({
@@ -113,12 +91,7 @@ export function useAgenda() {
 
   const deleteEvent = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('agenda_events')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.delete(`/data/agenda_events/${id}`);
 
       toast({
         title: "Sucesso",

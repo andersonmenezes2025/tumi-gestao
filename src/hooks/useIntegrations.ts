@@ -1,9 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from './useCompany';
-import { Tables } from '@/integrations/supabase/types';
 
-type Integration = Tables<'integrations'>;
+interface Integration {
+  id: string;
+  company_id: string;
+  type: string;
+  name: string;
+  config: any;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+
 
 export function useIntegrations() {
   const { companyId } = useCompany();
@@ -14,28 +24,16 @@ export function useIntegrations() {
     queryFn: async () => {
       if (!companyId) return [];
       
-      const { data, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Integration[];
+      const response = await apiClient.get(`/data/integrations?company_id=${companyId}&order=created_at:desc`);
+      return response.data as Integration[];
     },
     enabled: !!companyId,
   });
 
   const createIntegration = useMutation({
     mutationFn: async (integration: Omit<Integration, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('integrations')
-        .insert([integration])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const response = await apiClient.post('/data/integrations', integration);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
@@ -44,15 +42,8 @@ export function useIntegrations() {
 
   const updateIntegration = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Integration> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('integrations')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const response = await apiClient.put(`/data/integrations/${id}`, updates);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
@@ -61,12 +52,7 @@ export function useIntegrations() {
 
   const deleteIntegration = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('integrations')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.delete(`/data/integrations/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['integrations'] });

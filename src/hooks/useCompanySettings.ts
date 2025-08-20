@@ -1,10 +1,10 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
-import { Tables } from '@/integrations/supabase/types';
+import { Company } from '@/types/database';
 
-type CompanyUpdate = Partial<Omit<Tables<'companies'>, 'id' | 'created_at' | 'updated_at'>>;
+type CompanyUpdate = Partial<Omit<Company, 'id' | 'created_at' | 'updated_at'>>;
 
 export function useCompanySettings() {
   const { companyId } = useCompany();
@@ -18,23 +18,13 @@ export function useCompanySettings() {
 
       console.log('Updating company:', companyId, data);
 
-      const { data: result, error } = await supabase
-        .from('companies')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', companyId)
-        .select()
-        .single();
+      const response = await apiClient.put(`/data/companies/${companyId}`, {
+        ...data,
+        updated_at: new Date().toISOString(),
+      });
 
-      if (error) {
-        console.error('Error updating company:', error);
-        throw error;
-      }
-
-      console.log('Company updated successfully:', result);
-      return result;
+      console.log('Company updated successfully:', response.data);
+      return response.data;
     },
     onSuccess: () => {
       // Invalidate and refetch company data

@@ -64,22 +64,17 @@ export function SystemHealthCheck() {
     // 4. Testar conexão com banco de dados
     try {
       const response = await apiClient.get('/auth/health');
-      
-      return {
-        status: response.data ? 'success' : 'error',
-        message: response.data ? 'API funcionando' : 'Erro na API',
-      };
       healthChecks.push({
         name: 'Conexão com Banco',
-        status: error ? 'error' : 'success',
-        message: error ? `Erro: ${error.message}` : 'Conexão com Supabase funcionando',
+        status: response.data ? 'success' : 'error',
+        message: response.data ? 'API funcionando' : 'Erro na API',
         icon: <Database className="h-4 w-4" />
       });
     } catch (error) {
       healthChecks.push({
         name: 'Conexão com Banco',
         status: 'error',
-        message: 'Erro na conexão com Supabase',
+        message: 'Erro na conexão com banco de dados',
         icon: <Database className="h-4 w-4" />
       });
     }
@@ -91,8 +86,8 @@ export function SystemHealthCheck() {
         const response = await apiClient.get(`/data/${table}?limit=1`);
         healthChecks.push({
           name: `Tabela: ${table}`,
-          status: error ? 'error' : 'success',
-          message: error ? `Erro ao acessar ${table}: ${error.message}` : `Tabela ${table} acessível`,
+          status: response ? 'success' : 'error',
+          message: response ? `Tabela ${table} acessível` : `Erro ao acessar ${table}`,
           icon: <Database className="h-4 w-4" />
         });
       } catch (error) {
