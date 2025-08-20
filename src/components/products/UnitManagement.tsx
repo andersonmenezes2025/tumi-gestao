@@ -8,11 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
+import { apiClient } from '@/lib/api-client';
 import { ProductUnit } from '@/types/database';
-
-type ProductUnit = Tables<'product_units'>;
 
 interface UnitManagementProps {
   onRefresh?: () => void;
@@ -43,14 +41,8 @@ export function UnitManagement({ onRefresh }: UnitManagementProps) {
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('product_units')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
-
-      if (error) throw error;
-      setUnits(data || []);
+      const response = await apiClient.get(`/data/product_units?company_id=${companyId}&order=name:asc`);
+      setUnits(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar unidades",
@@ -77,22 +69,13 @@ export function UnitManagement({ onRefresh }: UnitManagementProps) {
 
       if (editingUnit) {
         // Update existing unit
-        const { error } = await supabase
-          .from('product_units')
-          .update(unitData)
-          .eq('id', editingUnit.id);
-
-        if (error) throw error;
+        await apiClient.put(`/data/product_units/${editingUnit.id}`, unitData);
         toast({
           title: "Unidade atualizada com sucesso!",
         });
       } else {
         // Create new unit
-        const { error } = await supabase
-          .from('product_units')
-          .insert([unitData]);
-
-        if (error) throw error;
+        await apiClient.post('/data/product_units', unitData);
         toast({
           title: "Unidade criada com sucesso!",
         });
@@ -127,12 +110,7 @@ export function UnitManagement({ onRefresh }: UnitManagementProps) {
   const handleDelete = async (unit: ProductUnit) => {
     if (window.confirm(`Tem certeza que deseja excluir a unidade "${unit.name}"?`)) {
       try {
-        const { error } = await supabase
-          .from('product_units')
-          .delete()
-          .eq('id', unit.id);
-
-        if (error) throw error;
+        await apiClient.delete(`/data/product_units/${unit.id}`);
         
         toast({
           title: "Unidade excluída com sucesso!",

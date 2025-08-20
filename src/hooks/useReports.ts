@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 
@@ -16,17 +16,8 @@ export function useReports() {
     setLoading(true);
     try {
       // Buscar dados de vendas
-      const { data: sales, error } = await supabase
-        .from('sales')
-        .select(`
-          *,
-          customers(name),
-          sale_items(*, products(name))
-        `)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const response = await apiClient.get(`/data/sales?company_id=${companyId}&order=created_at:desc`);
+      const sales = response.data || [];
 
       const totalSales = sales.reduce((sum, sale) => sum + sale.total_amount, 0);
       const totalQuantity = sales.reduce((sum, sale) => 
@@ -106,26 +97,19 @@ export function useReports() {
     
     setLoading(true);
     try {
-      // Buscar dados financeiros
-      const { data: sales } = await supabase
-        .from('sales')
-        .select('*')
-        .eq('company_id', companyId)
-        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+      const [salesRes, receivablesRes, payablesRes] = await Promise.all([
+        apiClient.get(`/data/sales?company_id=${companyId}`),
+        apiClient.get(`/data/accounts_receivable?company_id=${companyId}`),
+        apiClient.get(`/data/accounts_payable?company_id=${companyId}`)
+      ]);
 
-      const { data: receivables } = await supabase
-        .from('accounts_receivable')
-        .select('*')
-        .eq('company_id', companyId);
+      const sales = salesRes.data || [];
+      const receivables = receivablesRes.data || [];
+      const payables = payablesRes.data || [];
 
-      const { data: payables } = await supabase
-        .from('accounts_payable')
-        .select('*')
-        .eq('company_id', companyId);
-
-      const totalReceivables = receivables?.reduce((sum, item) => sum + item.amount, 0) || 0;
-      const totalPayables = payables?.reduce((sum, item) => sum + item.amount, 0) || 0;
-      const totalSales = sales?.reduce((sum, sale) => sum + sale.total_amount, 0) || 0;
+      const totalReceivables = receivables.reduce((sum, item) => sum + item.amount, 0);
+      const totalPayables = payables.reduce((sum, item) => sum + item.amount, 0);
+      const totalSales = sales.reduce((sum, sale) => sum + sale.total_amount, 0);
 
       if (format === 'pdf') {
         const doc = new jsPDF();
@@ -179,13 +163,8 @@ export function useReports() {
     
     setLoading(true);
     try {
-      const { data: customers, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const response = await apiClient.get(`/data/customers?company_id=${companyId}&order=created_at:desc`);
+      const customers = response.data || [];
 
       if (format === 'pdf') {
         const doc = new jsPDF();
@@ -244,13 +223,8 @@ export function useReports() {
     
     setLoading(true);
     try {
-      const { data: products, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
-
-      if (error) throw error;
+      const response = await apiClient.get(`/data/products?company_id=${companyId}&order=name:asc`);
+      const products = response.data || [];
 
       const totalValue = products.reduce((sum, product) => 
         sum + (product.stock_quantity || 0) * (product.cost_price || 0), 0

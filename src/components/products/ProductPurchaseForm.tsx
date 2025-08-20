@@ -8,13 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { Product, Supplier, ProductPurchase } from '@/types/database';
 
-type Product = Tables<'products'>;
-type Supplier = Tables<'suppliers'>;
 
 interface ProductPurchaseFormProps {
   open: boolean;
@@ -51,15 +49,8 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
     
     setLoadingProducts(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('active', true)
-        .order('name');
-
-      if (error) throw error;
-      setProducts(data || []);
+      const response = await apiClient.get(`/data/products?company_id=${companyId}&active=true&order=name:asc`);
+      setProducts(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar produtos",
@@ -90,32 +81,23 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
         newSellingPrice = unitCost + profitMarginValue;
       }
 
-      const { error } = await supabase
-        .from('product_purchases')
-        .insert([{
-          company_id: companyId,
-          product_id: selectedProduct,
-          supplier_id: supplierType === 'existing' ? selectedSupplierId || null : null,
-          supplier_name: supplierName,
-          quantity,
-          unit_cost: unitCost,
-          total_cost: totalCost,
-          notes: notes || null
-        }]);
-
-      if (error) throw error;
+      await apiClient.post('/data/product_purchases', {
+        company_id: companyId,
+        product_id: selectedProduct,
+        supplier_id: supplierType === 'existing' ? selectedSupplierId || null : null,
+        supplier_name: supplierName,
+        quantity,
+        unit_cost: unitCost,
+        total_cost: totalCost,
+        notes: notes || null
+      });
 
       // Update product cost price and selling price
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({
-          cost_price: unitCost,
-          price: newSellingPrice,
-          profit_margin_percentage: profitMarginType === 'percentage' ? profitMarginValue : null
-        })
-        .eq('id', selectedProduct);
-
-      if (updateError) throw updateError;
+      await apiClient.put(`/data/products/${selectedProduct}`, {
+        cost_price: unitCost,
+        price: newSellingPrice,
+        profit_margin_percentage: profitMarginType === 'percentage' ? profitMarginValue : null
+      });
 
       // Create accounts payable for the purchase
       const dueDate = new Date();
@@ -129,9 +111,8 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
       const productName = selectedProductData?.name || 'Produto';
       const productUnit = selectedProductData?.unit || 'un';
 
-      const { error: payableError } = await supabase
-        .from('accounts_payable')
-        .insert({
+      try {
+        await apiClient.post('/data/accounts_payable', {
           company_id: companyId,
           amount: totalCost,
           due_date: dueDate.toISOString().split('T')[0],
@@ -140,8 +121,7 @@ export function ProductPurchaseForm({ open, onOpenChange, onSuccess }: ProductPu
           category: 'inventory',
           status: 'pending'
         });
-
-      if (payableError) {
+      } catch (payableError) {
         console.warn('Erro ao criar conta a pagar:', payableError);
         // Don't throw here, as the purchase was successful
       }

@@ -10,13 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Plus, Trash2, Search, User, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
 import { Sale, Product, Customer } from '@/types/database';
 
-type Customer = Tables<'customers'>;
-type Product = Tables<'products'>;
-type Sale = Tables<'sales'>;
 
 interface SaleItem {
   product_id: string;
@@ -78,15 +75,8 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('active', true)
-        .order('name');
-
-      if (error) throw error;
-      setCustomers(data || []);
+      const response = await apiClient.get(`/data/customers?company_id=${companyId}&active=true&order=name:asc`);
+      setCustomers(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar clientes",
@@ -100,15 +90,8 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('active', true)
-        .order('name');
-
-      if (error) throw error;
-      setProducts(data || []);
+      const response = await apiClient.get(`/data/products?company_id=${companyId}&active=true&order=name:asc`);
+      setProducts(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar produtos",
@@ -236,21 +219,16 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
       
       // Create new customer if needed
       if (customerType === 'new' && newCustomer.name) {
-        const { data: customerData, error: customerError } = await supabase
-          .from('customers')
-          .insert([{
-            company_id: companyId,
-            name: newCustomer.name,
-            email: newCustomer.email || null,
-            phone: newCustomer.phone || null,
-            document: newCustomer.document || null,
-            active: true
-          }])
-          .select()
-          .single();
-
-        if (customerError) throw customerError;
-        customerId = customerData.id;
+        // Create new customer if needed
+        const customerResponse = await apiClient.post('/data/customers', {
+          company_id: companyId,
+          name: newCustomer.name,
+          email: newCustomer.email || null,
+          phone: newCustomer.phone || null,
+          document: newCustomer.document || null,
+          active: true
+        });
+        customerId = customerResponse.data.id;
       }
 
       if (sale) {

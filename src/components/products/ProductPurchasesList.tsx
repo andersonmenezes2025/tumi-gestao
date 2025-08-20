@@ -5,12 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Package, Trash2, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
 import { ProductPurchase } from '@/types/database';
 
-type ProductPurchase = Tables<'product_purchases'>;
-type Product = Tables<'products'>;
 
 interface ProductPurchasesListProps {
   refreshTrigger?: number;
@@ -33,20 +31,8 @@ export function ProductPurchasesList({ refreshTrigger }: ProductPurchasesListPro
     if (!companyId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('product_purchases')
-        .select(`
-          *,
-          products (
-            name,
-            unit
-          )
-        `)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPurchases(data || []);
+      const response = await apiClient.get(`/data/product_purchases?company_id=${companyId}&order=created_at:desc`);
+      setPurchases(response.data || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar compras",
@@ -62,12 +48,7 @@ export function ProductPurchasesList({ refreshTrigger }: ProductPurchasesListPro
     if (!window.confirm('Tem certeza que deseja excluir esta compra?')) return;
 
     try {
-      const { error } = await supabase
-        .from('product_purchases')
-        .delete()
-        .eq('id', purchase.id);
-
-      if (error) throw error;
+      await apiClient.delete(`/data/product_purchases/${purchase.id}`);
 
       toast({
         title: "Compra excluída com sucesso!",

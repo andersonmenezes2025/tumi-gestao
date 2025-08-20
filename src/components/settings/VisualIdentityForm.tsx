@@ -103,20 +103,12 @@ export function VisualIdentityForm() {
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${company.creator_id}/${company.id}/${fileName}`;
 
-      // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('company-logos')
-        .upload(filePath, file);
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('company-logos')
-        .getPublicUrl(filePath);
-
-      setValue('logo_url', publicUrl);
-      setLogoPreview(publicUrl);
+      // For now, disable file upload functionality since we're using direct PostgreSQL
+      toast({
+        title: 'Funcionalidade temporariamente indisponível',
+        description: 'Upload de logo será implementado em breve.',
+        variant: "destructive",
+      });
 
       toast({
         title: 'Sucesso',

@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
 import { useCompany } from '@/hooks/useCompany';
 import { ProductCategory } from '@/types/database';
 
-type ProductCategory = Tables<'product_categories'>;
+
 
 interface CategoryFormProps {
   open: boolean;

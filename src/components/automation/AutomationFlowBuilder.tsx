@@ -235,8 +235,8 @@ export function AutomationFlowBuilder({ trigger, onSave }: AutomationFlowBuilder
       const flowData = {
         name: flowName,
         description: `Fluxo criado com ${nodes.length} nós`,
-        type: 'custom' as const,
-        configuration: JSON.parse(JSON.stringify({
+        trigger_type: 'custom',
+        trigger_config: JSON.parse(JSON.stringify({
           nodes: serializableNodes,
           edges: serializableEdges
         })),
@@ -249,17 +249,7 @@ export function AutomationFlowBuilder({ trigger, onSave }: AutomationFlowBuilder
               data: n.data
             }))
         )),
-        trigger_conditions: JSON.parse(JSON.stringify(
-          serializableNodes
-            .filter(n => n.type === 'trigger')
-            .reduce((acc, n) => ({ ...acc, ...n.data }), {})
-        )),
-        is_active: true,
-        webhook_url: null,
-        execution_count: 0,
-        success_count: 0,
-        error_count: 0,
-        last_executed_at: null
+        is_active: true
       };
 
       if (onSave) {

@@ -42,11 +42,11 @@ export function N8NWebhookConfig({ trigger }: N8NWebhookConfigProps) {
 
   useEffect(() => {
     if (n8nIntegration) {
-      const settings = n8nIntegration.settings as any;
-      setWebhookUrl(settings.webhook_url || '');
-      setAuthToken(settings.auth_token || '');
+      const config = n8nIntegration.config as any;
+      setWebhookUrl(config.webhook_url || '');
+      setAuthToken(config.auth_token || '');
       setIsActive(n8nIntegration.active || false);
-      setSelectedTrigger(settings.trigger_type || 'message');
+      setSelectedTrigger(config.trigger_type || 'message');
     }
   }, [n8nIntegration]);
 
@@ -66,7 +66,7 @@ export function N8NWebhookConfig({ trigger }: N8NWebhookConfigProps) {
         type: 'n8n',
         name: 'N8N Webhook Integration',
         active: isActive,
-        settings: {
+        config: {
           webhook_url: webhookUrl,
           auth_token: authToken,
           trigger_type: selectedTrigger,

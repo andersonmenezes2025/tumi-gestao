@@ -51,21 +51,14 @@ export function useCustomers() {
 
   const updateCustomer = async (id: string, updates: Partial<Customer>) => {
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await apiClient.put(`/data/customers/${id}`, updates);
       
-      setCustomers(prev => prev.map(c => c.id === id ? data : c));
+      setCustomers(prev => prev.map(c => c.id === id ? response.data : c));
       toast({
         title: "Cliente atualizado com sucesso!",
       });
       
-      return data;
+      return response.data;
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar cliente",
@@ -78,12 +71,7 @@ export function useCustomers() {
 
   const deleteCustomer = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('customers')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.delete(`/data/customers/${id}`);
       
       setCustomers(prev => prev.filter(c => c.id !== id));
       toast({
