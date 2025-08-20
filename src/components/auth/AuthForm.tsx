@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/lib/api-client';
 import { Loader2, Building, User } from 'lucide-react';
 
 interface AuthFormProps {
@@ -58,28 +58,28 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const response = await apiClient.post('/auth/login', {
         email: sanitizeInput(email),
         password,
       });
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Email ou senha incorretos');
-        }
-        throw new Error('Erro ao fazer login. Tente novamente.');
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Bem-vindo de volta.",
+        });
+
+        // Reload to trigger auth context update
+        window.location.reload();
+        onSuccess?.();
       }
-
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta.",
-      });
-
-      onSuccess?.();
     } catch (error: any) {
+      const message = error.response?.data?.error || 'Erro ao fazer login. Tente novamente.';
       toast({
         title: "Erro no login",
-        description: error.message || "Erro desconhecido",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -129,62 +129,34 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     setIsLoading(true);
 
     try {
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const response = await apiClient.post('/auth/register', {
         email: sanitizeInput(email),
         password,
-        fullName: sanitizeInput(fullName)
+        fullName: sanitizeInput(fullName).trim(),
+        companyName: sanitizeInput(companyName).trim(),
       });
 
-      if (authError) {
-        if (authError.message.includes('User already registered')) {
-          throw new Error('Este email já está cadastrado. Tente fazer login.');
-        }
-        throw new Error('Erro ao criar conta. Tente novamente.');
-      }
-
-      if (authData.user) {
-        // Create company
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .insert([{ 
-            name: sanitizeInput(companyName).trim()
-          }])
-          .select()
-          .single();
-
-        if (companyError) {
-          throw new Error('Erro ao criar empresa');
-        }
-
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            company_id: company.id,
-            full_name: sanitizeInput(fullName).trim(),
-            email: sanitizeInput(email),
-            role: 'admin'
-          }]);
-
-        if (profileError) {
-          throw new Error('Erro ao criar perfil do usuário');
-        }
-
+      if (response.data.success) {
         toast({
           title: "Conta criada com sucesso!",
-          description: authData.user.email_confirmed_at 
-            ? "Você já pode usar o sistema."
-            : "Verifique seu email para confirmar a conta.",
+          description: "Você já pode fazer login.",
         });
 
-        onSuccess?.();
+        // Clear form and switch to signin tab
+        setEmail('');
+        setPassword('');
+        setFullName('');
+        setCompanyName('');
+        
+        // Switch to signin tab
+        const signinTab = document.querySelector('[value="signin"]') as HTMLElement;
+        signinTab?.click();
       }
     } catch (error: any) {
+      const message = error.response?.data?.error || 'Erro ao criar conta. Tente novamente.';
       toast({
         title: "Erro no cadastro",
-        description: error.message || "Erro desconhecido",
+        description: message,
         variant: "destructive",
       });
     } finally {

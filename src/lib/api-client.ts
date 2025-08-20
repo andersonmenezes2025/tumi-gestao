@@ -250,7 +250,7 @@ class ApiClient {
       : 'https://tumihortifruti.com.br/gestao';
     
     // Recuperar token do localStorage na inicialização
-    this.token = localStorage.getItem('auth_token');
+    this.token = localStorage.getItem('token');
   }
 
   private getHeaders() {
@@ -291,6 +291,25 @@ class ApiClient {
     }
   }
 
+  // Direct HTTP methods for simpler usage
+  async get(endpoint: string) {
+    return this.request(endpoint, { method: 'GET' });
+  }
+
+  async post(endpoint: string, data?: any) {
+    const body = data ? JSON.stringify(data) : undefined;
+    return this.request(endpoint, { method: 'POST', body });
+  }
+
+  async put(endpoint: string, data?: any) {
+    const body = data ? JSON.stringify(data) : undefined;
+    return this.request(endpoint, { method: 'PUT', body });
+  }
+
+  async delete(endpoint: string) {
+    return this.request(endpoint, { method: 'DELETE' });
+  }
+
   // Auth methods
   auth = {
     signUp: async (credentials: { email: string; password: string; fullName?: string }) => {
@@ -301,7 +320,7 @@ class ApiClient {
       
       if (response.token) {
         this.token = response.token;
-        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('token', response.token);
       }
       
       return { data: { user: response.user, session: response.session }, error: null };
@@ -315,7 +334,7 @@ class ApiClient {
       
       if (response.token) {
         this.token = response.token;
-        localStorage.setItem('auth_token', response.token);
+        localStorage.setItem('token', response.token);
       }
       
       return { data: { user: response.user, session: response.session }, error: null };
@@ -332,7 +351,7 @@ class ApiClient {
       } catch (error) {
         // Token inválido, limpar
         this.token = null;
-        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
         return { data: { session: null }, error: null };
       }
     },
@@ -340,7 +359,7 @@ class ApiClient {
     signOut: async () => {
       await this.request('/auth/signout', { method: 'POST' });
       this.token = null;
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
       return { error: null };
     },
 
@@ -383,18 +402,6 @@ class ApiClient {
   // Database methods
   from(table: string) {
     return new QueryBuilder(table, this);
-  }
-
-  insert(table: string, data: any) {
-    return new InsertBuilder(table, this, data);
-  }
-
-  update(table: string, data: any) {
-    return new UpdateBuilder(table, this, data);
-  }
-
-  delete(table: string) {
-    return new DeleteBuilder(table, this);
   }
 
   // Storage placeholder
