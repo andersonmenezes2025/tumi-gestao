@@ -30,17 +30,11 @@ export default function SharedQuote() {
     console.log('SharedQuote: Buscando orçamento com token:', token);
     
     try {
-      // Fetch secure quote data using security definer function
-      const { data: quoteData, error: quoteError } = await supabase
-        .rpc('get_public_quote_data', { token_param: token });
+      // Fetch secure quote data using token
+      const quoteData = await apiClient.get(`/quotes/public/${token}`);
 
-      console.log('SharedQuote: Resultado da busca do orçamento:', { quoteData, quoteError });
+      console.log('SharedQuote: Resultado da busca do orçamento:', { quoteData });
 
-      if (quoteError) {
-        console.error('SharedQuote: Erro ao buscar orçamento:', quoteError);
-        throw quoteError;
-      }
-      
       if (!quoteData) {
         console.error('SharedQuote: Orçamento não encontrado para token:', token);
         throw new Error('Orçamento não encontrado ou expirado');
@@ -49,28 +43,13 @@ export default function SharedQuote() {
       console.log('SharedQuote: Orçamento encontrado:', quoteData);
       setQuote(quoteData);
 
-      // Fetch company data from public view (secure)
-      const { data: companyData, error: companyError } = await supabase
-        .from('public_companies')
-        .select('*')
-        .eq('id', quoteData.company_id)
-        .maybeSingle();
-
-      if (companyError) {
-        console.error('SharedQuote: Erro ao buscar empresa:', companyError);
-        throw companyError;
-      }
+      // Fetch company data
+      const companyData = await apiClient.get(`/companies/public/${quoteData.company_id}`);
       
       setCompany(companyData);
 
-      // Fetch secure quote items using security definer function
-      const { data: itemsData, error: itemsError } = await supabase
-        .rpc('get_public_quote_items', { token_param: token });
-
-      if (itemsError) {
-        console.error('SharedQuote: Erro ao buscar itens:', itemsError);
-        throw itemsError;
-      }
+      // Fetch quote items
+      const itemsData = await apiClient.get(`/quotes/${token}/items/public`);
 
       console.log('SharedQuote: Itens encontrados:', itemsData);
       setQuoteItems(itemsData || []);

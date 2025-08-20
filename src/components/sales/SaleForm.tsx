@@ -233,41 +233,27 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
 
       if (sale) {
         // Update existing sale
-        const { error: saleError } = await supabase
-          .from('sales')
-          .update({
-            customer_id: customerId || null,
-            total_amount: getTotalAmount(),
-            payment_method: paymentMethod,
-            notes: notes || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', sale.id);
-
-        if (saleError) throw saleError;
+        await apiClient.put(`/sales/${sale.id}`, {
+          customer_id: customerId || null,
+          total_amount: getTotalAmount(),
+          payment_method: paymentMethod,
+          notes: notes || null,
+          updated_at: new Date().toISOString()
+        });
 
         // Delete existing sale items
-        const { error: deleteItemsError } = await supabase
-          .from('sale_items')
-          .delete()
-          .eq('sale_id', sale.id);
-
-        if (deleteItemsError) throw deleteItemsError;
+        await apiClient.delete(`/sale-items/sale/${sale.id}`);
 
         // Insert updated sale items
         for (const item of saleItems) {
-          const { error: itemError } = await supabase
-            .from('sale_items')
-            .insert({
-              sale_id: sale.id,
-              product_id: item.product_id,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              discount_percentage: item.discount_percentage,
-              total_price: item.total_price
-            });
-
-          if (itemError) throw itemError;
+          await apiClient.post('/sale-items', {
+            sale_id: sale.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_percentage: item.discount_percentage,
+            total_price: item.total_price
+          });
         }
 
         toast({
@@ -278,55 +264,39 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
       } else {
         // Create new sale
         // Generate sale number
-        const { data: saleNumber, error: numberError } = await supabase
-          .rpc('generate_sale_number', { company_uuid: companyId });
-
-        if (numberError) throw numberError;
+        const saleNumber = await apiClient.post('/sales/generate-number', { company_id: companyId });
 
         // Create sale
-        const { data: saleData, error: saleError } = await supabase
-          .from('sales')
-          .insert([{
-            company_id: companyId,
-            customer_id: customerId || null,
-            sale_number: saleNumber,
-            total_amount: getTotalAmount(),
-            payment_method: paymentMethod,
-            payment_status: 'completed',
-            status: 'completed',
-            notes: notes || null
-          }])
-          .select()
-          .single();
-
-        if (saleError) throw saleError;
+        const saleData = await apiClient.post('/sales', {
+          company_id: companyId,
+          customer_id: customerId || null,
+          sale_number: saleNumber,
+          total_amount: getTotalAmount(),
+          payment_method: paymentMethod,
+          payment_status: 'completed',
+          status: 'completed',
+          notes: notes || null
+        });
 
         // Create sale items and update stock
         for (const item of saleItems) {
-          const { error: itemError } = await supabase
-            .from('sale_items')
-            .insert({
-              sale_id: saleData.id,
-              product_id: item.product_id,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              discount_percentage: item.discount_percentage,
-              total_price: item.total_price
-            });
-
-          if (itemError) throw itemError;
+          await apiClient.post('/sale-items', {
+            sale_id: saleData.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_percentage: item.discount_percentage,
+            total_price: item.total_price
+          });
 
           // Update product stock
           const product = products.find(p => p.id === item.product_id);
           if (product && product.stock_quantity !== null) {
             const newStock = Math.max(0, product.stock_quantity - item.quantity);
             
-            const { error: stockError } = await supabase
-              .from('products')
-              .update({ stock_quantity: newStock })
-              .eq('id', item.product_id);
-
-            if (stockError) throw stockError;
+            await apiClient.put(`/products/${item.product_id}`, { 
+              stock_quantity: newStock 
+            });
           }
         }
 
@@ -339,9 +309,8 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
             ? customers.find(c => c.id === selectedCustomer)?.name 
             : customerType === 'new' ? newCustomer.name : 'Cliente não informado';
 
-          const { error: receivableError } = await supabase
-            .from('accounts_receivable')
-            .insert({
+          try {
+            await apiClient.post('/accounts-receivable', {
               company_id: companyId,
               customer_id: customerId || null,
               sale_id: saleData.id,
@@ -350,8 +319,7 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
               description: `Venda ${saleNumber} - ${customerName}`,
               status: 'pending'
             });
-
-          if (receivableError) {
+          } catch (receivableError) {
             console.error('Error creating receivable:', receivableError);
             // Don't throw error - sale was successful even if receivable creation failed
           }
@@ -381,24 +349,13 @@ export function SaleForm({ open, onOpenChange, onSuccess, sale }: SaleFormProps)
     if (!sale) return;
     
     try {
-      // Load sale items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('sale_items')
-        .select(`
-          *,
-          products (
-            name,
-            unit
-          )
-        `)
-        .eq('sale_id', sale.id);
-
-      if (itemsError) throw itemsError;
+      // Load sale items  
+      const itemsData = await apiClient.get(`/sale-items/sale/${sale.id}`);
 
       // Set sale items
       const formattedItems: SaleItem[] = itemsData.map(item => ({
         product_id: item.product_id,
-        product_name: (item as any).products?.name || 'Produto não encontrado',
+        product_name: item.products?.name || 'Produto não encontrado',
         quantity: item.quantity,
         unit_price: item.unit_price,
         discount_percentage: item.discount_percentage || 0,
