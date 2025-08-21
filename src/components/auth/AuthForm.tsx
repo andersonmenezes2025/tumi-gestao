@@ -58,7 +58,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post('/auth/login', {
+      const response = await apiClient.post('/auth/signin', {
         email: sanitizeInput(email),
         password,
       });
@@ -129,7 +129,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post('/auth/register', {
+      const response = await apiClient.post('/auth/signup', {
         email: sanitizeInput(email),
         password,
         fullName: sanitizeInput(fullName).trim(),
