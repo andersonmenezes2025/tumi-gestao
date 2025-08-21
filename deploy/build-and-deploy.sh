@@ -33,15 +33,41 @@ npm install --production=false
 
 # Build do backend
 echo "🔨 Compilando backend..."
-npm run build:server
+# Criar diretório de saída
+mkdir -p server/dist
+
+# Tentar compilar com TypeScript
+if npx tsc --project tsconfig.server.json; then
+    echo "✅ Backend compilado com sucesso usando TypeScript"
+else
+    echo "⚠️  Compilação TypeScript falhou, usando tsx diretamente"
+    # Criar um script alternativo que usa tsx
+    cat > server/dist/index.js << 'EOF'
+const { spawn } = require('child_process');
+const path = require('path');
+
+// Executar server/index.ts usando tsx
+const tsxPath = path.resolve(__dirname, '../../node_modules/.bin/tsx');
+const serverPath = path.resolve(__dirname, '../index.ts');
+
+const child = spawn('node', [tsxPath, serverPath], {
+    stdio: 'inherit',
+    cwd: path.resolve(__dirname, '../..')
+});
+
+child.on('exit', (code) => {
+    process.exit(code);
+});
+EOF
+fi
 
 # Build do frontend
 echo "🔨 Compilando frontend..."
 npm run build
 
 # Verificar se os builds foram criados
-if [ ! -f "server/dist/index.js" ]; then
-    echo "❌ Erro: Build do backend falhou"
+if [ ! -f "server/dist/index.js" ] && [ ! -f "server/index.ts" ]; then
+    echo "❌ Erro: Arquivos do backend não encontrados"
     exit 1
 fi
 

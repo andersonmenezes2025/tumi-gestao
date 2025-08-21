@@ -2,6 +2,7 @@ module.exports = {
   apps: [{
     name: 'tumigestao-backend',
     script: './server/dist/index.js',
+    interpreter: 'node',
     cwd: '/var/www/tumi/gestao',
     instances: 1,
     autorestart: true,
@@ -20,6 +21,7 @@ module.exports = {
     error_file: '/var/log/pm2/tumigestao-error.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     merge_logs: true,
-    time: true
+    time: true,
+    error_file: '/var/log/pm2/tumigestao-error.log'
   }]
 };
