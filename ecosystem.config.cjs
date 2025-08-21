@@ -1,8 +1,9 @@
 module.exports = {
   apps: [{
     name: 'tumigestao-backend',
-    script: './server/dist/index.js',
-    interpreter: 'node',
+    script: './server/index.ts',
+    interpreter: 'npx',
+    interpreter_args: 'tsx',
     cwd: '/var/www/tumi/gestao',
     instances: 1,
     autorestart: true,
