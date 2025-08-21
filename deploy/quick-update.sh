@@ -35,7 +35,7 @@ chmod -R 755 dist/public
 
 # Reiniciar aplicação
 echo "🚀 Reiniciando aplicação..."
-pm2 start tumigestao-backend
+pm2 restart tumigestao-backend
 
 # Aguardar e verificar status
 sleep 3

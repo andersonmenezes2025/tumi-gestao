@@ -98,7 +98,7 @@ fi
 
 # Iniciar aplicação com PM2
 echo "🚀 Iniciando aplicação..."
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.cjs --env production
 
 # Salvar configuração do PM2
 pm2 save
