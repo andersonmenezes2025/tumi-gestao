@@ -245,9 +245,9 @@ class ApiClient {
   private token: string | null = null;
 
   constructor() {
-    this.baseUrl = import.meta.env.DEV 
-      ? 'http://localhost:3001' 
-      : 'https://tumihortifruti.com.br/gestao';
+    this.baseUrl = import.meta.env.MODE === 'production' 
+      ? 'https://tumihortifruti.com.br/gestao'
+      : 'http://localhost:3001';
     
     // Recuperar token do localStorage na inicialização
     this.token = localStorage.getItem('token');

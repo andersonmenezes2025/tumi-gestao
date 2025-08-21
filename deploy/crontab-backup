@@ -1,0 +1,9 @@
+# Backup automático do TumiGestão
+# Executa todo dia às 2h da manhã
+0 2 * * * /var/www/tumi/gestao/deploy/backup-database.sh >> /var/log/tumigestao-backup.log 2>&1
+
+# Limpeza de logs PM2 - toda semana
+0 3 * * 0 pm2 flush
+
+# Restart preventivo do PM2 - todo domingo às 4h
+0 4 * * 0 pm2 restart tumigestao-backend

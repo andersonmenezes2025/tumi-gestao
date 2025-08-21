@@ -1,0 +1,72 @@
+server {
+    server_name tumihortifruti.com.br www.tumihortifruti.com.br;
+
+    client_max_body_size 20M;
+
+    # === SISTEMA DE GESTÃO TUMI - FRONTEND ===
+    # Lida com as requisições para a aplicação React/Vite no subdiretório /gestao/
+    location /gestao {
+        alias /var/www/tumi/gestao/dist/public;
+        index index.html;
+        # CRÍTICO: try_files para o SPA, garantindo que rotas internas do React redirecionem para index.html
+        # O "/gestao/index.html" aqui é crucial para o try_files com alias em um subdiretório
+        try_files $uri $uri/ /gestao/index.html;
+    }
+
+    # === SISTEMA DE GESTÃO TUMI - BACKEND API ===
+    # Redireciona as requisições /gestao/api/ para o seu servidor backend (Node.js/Express)
+    location /gestao/api/ {
+        proxy_pass http://localhost:3001/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_intercept_errors off;
+    }
+
+    # === SISTEMA DE GESTÃO TUMI - ASSETS ESTÁTICOS ===
+    # Lida com o cache dos assets (JS, CSS, imagens) do frontend
+    # Note que se o Vite gerar assets como /gestao/assets, esta regra ainda é válida
+    location /gestao/assets {
+        alias /var/www/tumi/gestao/dist/public/assets;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # === SITE PRINCIPAL OU OUTRA APLICAÇÃO ===
+    # Lida com requisições para a raiz do domínio (seu site principal, na porta 5500)
+    location / {
+        proxy_pass http://127.0.0.1:5500;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_intercept_errors off;
+    }
+
+    # === CONFIGURAÇÕES SSL (HTTPS) ===
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/tumihortifruti.com.br/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/tumihortifruti.com.br/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparam.pem; # managed by Certbot
+}
+
+# === REDIRECIONAMENTOS HTTP para HTTPS ===
+server {
+    if ($host = www.tumihortifruti.com.br) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+    
+    if ($host = tumihortifruti.com.br) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+    
+    listen 80;
+    server_name tumihortifruti.com.br www.tumihortifruti.com.br;
+    return 404; # managed by Certbot
+}
