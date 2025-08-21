@@ -92,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const response = await apiClient.get('/auth/profile');
+        console.log('Initializing auth with token:', !!token);
+        const response = await apiClient.get('/auth/session');
+        console.log('Auth session response:', response.data);
         const userData = response.data;
         
         setUser({ 
